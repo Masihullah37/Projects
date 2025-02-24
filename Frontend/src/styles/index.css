@@ -1,0 +1,30 @@
+/* // Frontend/src/styles/index.css */
+/* Reset CSS et styles de base */
+:root {
+  --primary-color: #2196F3;
+  --secondary-color: #03A9F4;
+  --dark-blue: #004D6E;
+  --text-light: #FFFFFF;
+  --text-dark: #333333;
+  --background-light: #F5F5F5;
+  --error-color: #FF5252;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-light);
+}
+
+#root {
+  min-height: 100vh;
+}
