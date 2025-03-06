@@ -11,6 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+
+// date_default_timezone_set('Europe/Paris');  // PHP Timezone
+
+// Require the Composer autoloader
+require_once __DIR__ . '/vendor/autoload.php';
+
 require_once 'Config/Database.php';
 require_once 'Controllers/AuthController.php';
 require_once 'Controllers/PurchaseController.php';
@@ -34,6 +40,8 @@ $action = $_GET['action'] ?? '';
 
 // Debugging: Log the action
 error_log("Action received: " . $action);
+
+
 
 // Gestion des routes avec switch-case
 switch ($action) {
@@ -185,6 +193,48 @@ switch ($action) {
               echo json_encode(["error" => "ID de paiement manquant ou invalide"]);
           }
           break;
+
+          // Add new password reset routes
+    case 'forgot_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data) {
+                echo json_encode($authController->forgotPassword($data));
+            } else {
+                echo json_encode(["error" => "Données JSON invalides"]);
+            }
+        } else {
+            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+        }
+        break;
+
+    case 'validate_reset_token':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $token = $_GET['token'] ?? '';
+            $email = $_GET['email'] ?? '';
+            echo json_encode($authController->validateResetToken($token, $email));
+        } else {
+            echo json_encode(["error" => "Méthode invalide. Utilisez GET."]);
+        }
+        break;
+
+   
+
+    case 'reset_password':
+        error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $rawData = file_get_contents("php://input");
+            error_log("Raw JSON Data: " . $rawData);
+            $data = json_decode($rawData, true);
+            if ($data) {
+                echo json_encode($authController->resetPassword($data));
+            } else {
+                echo json_encode(["error" => "Données JSON invalides"]);
+            }
+        } else {
+            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+        }
+        break;
 
     default:
         echo json_encode(["error" => "Action non reconnue"]);
