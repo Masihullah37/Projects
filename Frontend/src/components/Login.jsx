@@ -19,10 +19,26 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Clear previous errors
     setErrors({});
 
-    if (!formData.email.trim() || !formData.password.trim()) {
-      setErrors({ general: "Veuillez remplir tous les champs" });
+    // Validate if fields are empty
+    let hasErrors = false;
+    const newErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Veuillez remplir le champ email";
+      hasErrors = true;
+    }
+    if (!formData.password.trim()) {
+      newErrors.password = "Veuillez remplir le champ mot de passe";
+      hasErrors = true;
+    }
+
+    // If there are errors, update the state and stop further execution
+    if (hasErrors) {
+      setErrors(newErrors);
       return;
     }
 
@@ -40,16 +56,18 @@ function Login() {
 
       const data = await response.json();
 
+      // Check if the response contains an error
       if (data.error) {
-        setErrors({ general: "Email ou mot de passe incorrect" });
+        setErrors((prevErrors) => ({ ...prevErrors, general: data.error })); // Display the error message from the backend
         return;
       }
 
+      // If login is successful, set user and redirect to cart
       setUser(data);
       localStorage.setItem("user", JSON.stringify(data));
       navigate("/cart");
     } catch (err) {
-      setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
+      setErrors((prevErrors) => ({ ...prevErrors, general: "Une erreur est survenue. Veuillez réessayer." }));
     }
   };
 
@@ -71,8 +89,9 @@ function Login() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Votre adresse email"
-                  required
+                  // required
                 />
+                {errors.email && <div className="field-error">{errors.email}</div>}
               </div>
 
               <div className="form-group">
@@ -82,12 +101,13 @@ function Login() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Votre mot de passe"
-                  required
+                  // required
                 />
+                {errors.password && <div className="field-error">{errors.password}</div>}
               </div>
 
               <div className="forgot-password">
-                <span className="text-muted">Mot de passe oublié ?</span>
+                <Link to="/forgot-password">Mot de passe oublié ?</Link>
               </div>
 
               <button type="submit" className="auth-button">
@@ -108,7 +128,6 @@ function Login() {
 }
 
 export default Login;
-
 
 
 
