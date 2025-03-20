@@ -1,0 +1,135 @@
+
+
+
+ .servicesSection {
+  padding: 3rem 0;
+  margin-bottom: 4rem;
+  scroll-margin-top: 80px; /* Ensures the section is visible when scrolled to */
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  color: #004d6e;
+  margin-bottom: 2rem;
+  text-align: center;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.sectionTitle::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background-color: #a9dcef;
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.serviceCard {
+  background-color: #00bfff;
+  border: 2px solid #004d6e;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.serviceCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.serviceTitle {
+  font-size: 1.2rem;
+  color: #004d6e;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.serviceDescription {
+  color: #333;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.contactButton {
+  background-color: #004d6e;
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 25px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: auto;
+  align-self: center;
+  width: 100%;
+  max-width: 200px;
+}
+
+.contactButton:hover {
+  background-color: #188fc6;
+}
+
+/* Responsive design */
+@media (max-width: 991px) {
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .serviceCard {
+    padding: 1.25rem;
+  }
+
+  .serviceTitle {
+    font-size: 1.1rem;
+  }
+
+  .contactButton {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Keep 2 columns for mobile instead of 1 */
+@media (max-width: 576px) {
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .serviceCard {
+    padding: 1rem;
+  }
+
+  .serviceTitle {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .serviceDescription {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .contactButton {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    max-width: 150px;
+  }
+}
+
