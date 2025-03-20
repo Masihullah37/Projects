@@ -1,10 +1,11 @@
 
 
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "react-feather";
 import Footer from "./Footer";
-import "../styles/Auth.css";
+import styles from "../styles/Auth.module.css"; // Updated import
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -77,7 +78,10 @@ function Signup() {
     setErrors({});
     setSuccess("");
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setTimeout(() => setErrors({}), 2000); // Clear errors after 2 seconds
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=register", {
@@ -118,111 +122,109 @@ function Signup() {
   };
 
   return (
-    <div className="page-container">
-      <div className="content-wrap">
-        <div className="auth-wrapper">
-          <div className="auth-container">
-            <h2 className="auth-title">S'inscrire</h2>
+    <div className={styles.pageContainer}>
+      <div className={styles.contentWrap}>
+        <div className={styles.authWrapper}>
+          <div className={styles.authContainer}>
+            <h2 className={styles.authTitle}>S'inscrire</h2>
 
-            {errors.general && <div className="error-message">{errors.general}</div>}
-            {success && <div className="success-message">{success}</div>}
+            {errors.general && <div className={styles.errorMessage}>{errors.general}</div>}
+            {success && <div className={styles.successMessage}>{success}</div>}
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <User className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <User className={styles.inputIcon} size={20} />
                 <input
                   type="text"
                   name="nom"
                   value={formData.nom}
                   onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                   placeholder="Votre nom"
-                  className={errors.nom ? "error" : ""}
+                  className={errors.nom ? styles.error : ""}
                 />
-                {errors.nom && <div className="field-error">{errors.nom}</div>}
+                {errors.nom && <div className={styles.fieldError}>{errors.nom}</div>}
               </div>
 
-              <div className="form-group">
-                <User className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <User className={styles.inputIcon} size={20} />
                 <input
                   type="text"
                   name="prenom"
                   value={formData.prenom}
                   onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
                   placeholder="Votre prénom"
-                  className={errors.prenom ? "error" : ""}
+                  className={errors.prenom ? styles.error : ""}
                 />
-                {errors.prenom && <div className="field-error">{errors.prenom}</div>}
+                {errors.prenom && <div className={styles.fieldError}>{errors.prenom}</div>}
               </div>
 
-              <div className="form-group">
-                <Mail className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Mail className={styles.inputIcon} size={20} />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Votre adresse email"
-                  className={errors.email ? "error" : ""}
-                  autoComplete="off"
+                  className={errors.email ? styles.error : ""}
+                  autoComplete="username"
                 />
-                {errors.email && <div className="field-error">{errors.email}</div>}
+                {errors.email && <div className={styles.fieldError}>{errors.email}</div>}
               </div>
 
-              <div className="form-group">
-                <Mail className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Mail className={styles.inputIcon} size={20} />
                 <input
                   type="email"
                   name="confirmEmail"
                   value={formData.confirmEmail}
                   onChange={(e) => setFormData({ ...formData, confirmEmail: e.target.value })}
                   placeholder="Confirmez votre adresse email"
-                  className={errors.confirmEmail ? "error" : ""}
-                
-                  
+                  className={errors.confirmEmail ? styles.error : ""}
                 />
-                {errors.confirmEmail && <div className="field-error">{errors.confirmEmail}</div>}
+                {errors.confirmEmail && <div className={styles.fieldError}>{errors.confirmEmail}</div>}
               </div>
 
-              <div className="form-group">
-                <Phone className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Phone className={styles.inputIcon} size={20} />
                 <input
                   type="tel"
                   name="telephone"
                   value={formData.telephone}
                   onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                   placeholder="Votre numéro de téléphone"
-                  className={errors.telephone ? "error" : ""}
+                  className={errors.telephone ? styles.error : ""}
                 />
-                {errors.telephone && <div className="field-error">{errors.telephone}</div>}
+                {errors.telephone && <div className={styles.fieldError}>{errors.telephone}</div>}
               </div>
 
-              <div className="form-group">
-                <Lock className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Lock className={styles.inputIcon} size={20} />
                 <input
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Entrez votre mot de passe"
-                  className={errors.password ? "error" : ""}
+                  className={errors.password ? styles.error : ""}
                 />
-                {errors.password && <div className="field-error">{errors.password}</div>}
+                {errors.password && <div className={styles.fieldError}>{errors.password}</div>}
               </div>
 
-              <div className="form-group">
-                <Lock className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Lock className={styles.inputIcon} size={20} />
                 <input
                   type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   placeholder="Confirmez votre mot de passe"
-                  className={errors.confirmPassword ? "error" : ""}
+                  className={errors.confirmPassword ? styles.error : ""}
                 />
-                {errors.confirmPassword && <div className="field-error">{errors.confirmPassword}</div>}
+                {errors.confirmPassword && <div className={styles.fieldError}>{errors.confirmPassword}</div>}
               </div>
 
-              <button type="submit" className="auth-button">
+              <button type="submit" className={styles.authButton}>
                 Inscription
               </button>
             </form>

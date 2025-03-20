@@ -1,11 +1,12 @@
 
 
+
 import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock } from "react-feather";
 import { AuthContext } from "../App";
 import Footer from "./Footer";
-import "../styles/Auth.css";
+import styles from "../styles/Auth.module.css"; // Updated import
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -72,18 +73,18 @@ function Login() {
   };
 
   return (
-    <div className="page-container">
-      <div className="content-wrap">
-        <div className="auth-wrapper">
-          <div className="auth-container">
-            <h2 className="auth-title">Se connecter</h2>
-            <p className="auth-subtitle">Accédez à votre compte pour continuer vos achats</p>
+    <div className={styles.pageContainer}>
+      <div className={styles.contentWrap}>
+        <div className={styles.authWrapper}>
+          <div className={styles.authContainer}>
+            <h2 className={styles.authTitle}>Se connecter</h2>
+            <p className={styles.authSubtitle}>Accédez à votre compte pour continuer vos achats</p>
 
-            {errors.general && <div className="error-message">{errors.general}</div>}
+            {errors.general && <div className={styles.errorMessage}>{errors.general}</div>}
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <Mail className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Mail className={styles.inputIcon} size={20} />
                 <input
                   type="email"
                   value={formData.email}
@@ -91,11 +92,11 @@ function Login() {
                   placeholder="Votre adresse email"
                   // required
                 />
-                {errors.email && <div className="field-error">{errors.email}</div>}
+                {errors.email && <div className={styles.fieldError}>{errors.email}</div>}
               </div>
 
-              <div className="form-group">
-                <Lock className="input-icon" size={20} />
+              <div className={styles.formGroup}>
+                <Lock className={styles.inputIcon} size={20} />
                 <input
                   type="password"
                   value={formData.password}
@@ -103,18 +104,18 @@ function Login() {
                   placeholder="Votre mot de passe"
                   // required
                 />
-                {errors.password && <div className="field-error">{errors.password}</div>}
+                {errors.password && <div className={styles.fieldError}>{errors.password}</div>}
               </div>
 
-              <div className="forgot-password">
+              <div className={styles.forgotPassword}>
                 <Link to="/forgot-password">Mot de passe oublié ?</Link>
               </div>
 
-              <button type="submit" className="auth-button">
+              <button type="submit" className={styles.authButton}>
                 Se connecter
               </button>
 
-              <div className="auth-links">
+              <div className={styles.authLinks}>
                 <span>Créer un compte ?</span>
                 <Link to="/signup">Inscription</Link>
               </div>
@@ -128,6 +129,8 @@ function Login() {
 }
 
 export default Login;
+
+
 
 
 
