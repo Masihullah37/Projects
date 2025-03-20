@@ -1,22 +1,17 @@
 <?php
-// Add these CORS headers at the very top of routes.php
+// On ajoute ces en-têtes pour activer le CORS (Cross-Origin Resource Sharing) et permettre les requêtes depuis d'autres domaines.
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// Handle preflight requests
+// On ajoute cette condition pour traiter les requêtes OPTIONS envoyées avant les requêtes POST ou GET, notamment par les navigateurs pour le CORS.
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("HTTP/1.1 200 OK");
     exit();
 }
-
-
-// date_default_timezone_set('Europe/Paris');  // PHP Timezone
-
-// Require the Composer autoloader
+// Inclure l'autoloader de Composer
 require_once __DIR__ . '/vendor/autoload.php';
-
 require_once 'Config/Database.php';
 require_once 'Controllers/AuthController.php';
 require_once 'Controllers/PurchaseController.php';
