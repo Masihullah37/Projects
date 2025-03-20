@@ -2,34 +2,50 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Home, Grid, ShoppingCart, User, UserPlus } from "react-feather";
-import "../styles/MobileNavigation.css";
+import styles from "../styles/MobileNavigation.module.css";
 
 function MobileNavigation() {
   const location = useLocation();
 
   return (
-    <nav className="mobile-nav">
-      <Link to="/" className={`nav-item ${location.pathname === "/" ? "active" : ""}`}>
+
+  <nav className={styles.mobileNav}>
+      <Link
+        to="/"
+        className={`${styles.navItem} ${location.pathname === "/" ? styles.navItemActive : ""}`}
+      >
         <Home size={20} />
         <span>Accueil</span>
       </Link>
 
-      <Link to="/services" className={`nav-item ${location.pathname === "/services" ? "active" : ""}`}>
+      <Link
+        to="/services"
+        className={`${styles.navItem} ${location.pathname === "/services" ? styles.navItemActive : ""}`}
+      >
         <Grid size={20} />
         <span>Nos services</span>
       </Link>
 
-      <Link to="/cart" className={`nav-item ${location.pathname === "/cart" ? "active" : ""}`}>
+      <Link
+        to="/cart"
+        className={`${styles.navItem} ${location.pathname === "/cart" ? styles.navItemActive : ""}`}
+      >
         <ShoppingCart size={20} />
         <span>Panier</span>
       </Link>
 
-      <Link to="/login" className={`nav-item ${location.pathname === "/login" ? "active" : ""}`}>
+      <Link
+        to="/login"
+        className={`${styles.navItem} ${location.pathname === "/login" ? styles.navItemActive : ""}`}
+      >
         <User size={20} />
         <span>Se connecter</span>
       </Link>
 
-      <Link to="/signup" className={`nav-item ${location.pathname === "/signup" ? "active" : ""}`}>
+      <Link
+        to="/signup"
+        className={`${styles.navItem} ${location.pathname === "/signup" ? styles.navItemActive : ""}`}
+      >
         <UserPlus size={20} />
         <span>Inscription</span>
       </Link>

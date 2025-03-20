@@ -1,0 +1,41 @@
+
+
+.mobileNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 0.5rem;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #666;
+  font-size: 0.75rem;
+  padding: 0.25rem;
+}
+
+.navItem span {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.navItemActive {
+  color: var(--primary-color);
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+  .mobileNav {
+    display: none;
+  }
+}
+
