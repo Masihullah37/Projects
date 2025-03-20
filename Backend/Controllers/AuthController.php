@@ -1,6 +1,4 @@
 <?php
-
-
 require_once __DIR__ . '/../Models/UserModel.php';
 require_once __DIR__ . '/../Services/EmailService.php';
 
@@ -14,9 +12,7 @@ class AuthController {
         $this->emailService = new EmailService();
     }
 
-  
-
-  public function register($data) {
+    public function register($data) {
     $nom = $data['nom'] ?? '';
     $prenom = $data['prenom'] ?? '';
     $email = $data['email'] ?? '';
