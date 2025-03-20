@@ -7,9 +7,9 @@ import App from './App'
 // Import des styles globaux
 import './styles/index.css'
 import './styles/App.css'
-import './styles/Auth.css'
-import './styles/Navbar.css'
-import './styles/MobileNavigation.css'
+// import './styles/Auth.module.css'
+// import './styles/Navbar.css'
+// import './styles/MobileNavigation.css'
 
 // Import des polices et icônes
 import '@fortawesome/fontawesome-free/css/all.min.css'
