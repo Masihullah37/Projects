@@ -2,8 +2,8 @@
 class Database {
     private $host = 'localhost';
     private $db = 'it_repair_shop';
-    private $user = '';
-    private $pass = '';
+    private $user = 'root';
+    private $pass = 'Roshan';
     private $conn;
 
     // Constructeur : établit la connexion à la base de données avec PDO
