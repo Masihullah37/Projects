@@ -1,16 +1,22 @@
 <?php
-// On ajoute ces en-têtes pour activer le CORS (Cross-Origin Resource Sharing) et permettre les requêtes depuis d'autres domaines.
+ob_start() ;
+// Enable CORS and set headers
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// On ajoute cette condition pour traiter les requêtes OPTIONS envoyées avant les requêtes POST ou GET, notamment par les navigateurs pour le CORS.
+// Handle OPTIONS requests for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("HTTP/1.1 200 OK");
     exit();
 }
-// Inclure l'autoloader de Composer
+
+// Disable error reporting to avoid interfering with JSON responses
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Include required files
 require_once __DIR__ . '/vendor/autoload.php';
 require_once 'Config/Database.php';
 require_once 'Controllers/AuthController.php';
@@ -19,37 +25,45 @@ require_once 'Controllers/RepairController.php';
 require_once 'Controllers/ProductController.php';
 require_once 'Controllers/PaymentController.php';
 
-// Initialisation de la base de données
+// Initialize the database
 $database = new Database();
 $conn = $database->getConnection();
 
-// Initialisation des contrôleurs
+// Initialize controllers
 $authController = new AuthController($conn);
 $purchaseController = new PurchaseController($conn);
 $repairController = new RepairController($conn);
 $productController = new ProductController($conn);
-$paymentController = new PaymentController($conn); 
+$paymentController = new PaymentController($conn);
 
-// Récupérer l'action depuis la requête
+// Get the action from the request
 $action = $_GET['action'] ?? '';
 
 // Debugging: Log the action
 error_log("Action received: " . $action);
 
+// Function to send a JSON response
+function sendJsonResponse($data, $statusCode = 200) {
+    // Ensure no unwanted output before sending the JSON
+    ob_end_clean();  // Clean the buffer if there's any unwanted output
+    http_response_code($statusCode);
+    echo json_encode($data);
+    exit;
+}
 
 
-// Gestion des routes avec switch-case
+// Handle the action
 switch ($action) {
     case 'register':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($authController->register($data));
+                sendJsonResponse($authController->register($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
@@ -57,12 +71,12 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($authController->login($data));
+                sendJsonResponse($authController->login($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
@@ -70,12 +84,12 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($purchaseController->addPurchase($data['user_id'], $data['product_id'], $data['quantity']));
+                sendJsonResponse($purchaseController->addPurchase($data['user_id'], $data['product_id'], $data['quantity']));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
@@ -83,12 +97,12 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $user_id = $_GET['user_id'] ?? null;
             if ($user_id) {
-                echo json_encode($purchaseController->getPurchases($user_id));
+                sendJsonResponse($purchaseController->getPurchases($user_id));
             } else {
-                echo json_encode(["error" => "Missing user_id parameter"]);
+                sendJsonResponse(["error" => "Missing user_id parameter"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez GET."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
         }
         break;
 
@@ -96,20 +110,20 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($repairController->addRepair($data));
+                sendJsonResponse($repairController->addRepair($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
     case 'get_repairs':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            echo json_encode($repairController->getRepairs());
+            sendJsonResponse($repairController->getRepairs());
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez GET."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
         }
         break;
 
@@ -117,12 +131,12 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($repairController->updateStatus($data));
+                sendJsonResponse($repairController->updateStatus($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST.."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
@@ -130,76 +144,135 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($productController->addProduct($data));
+                sendJsonResponse($productController->addProduct($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
     case 'get_products':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            echo json_encode($productController->getProducts());
+            sendJsonResponse($productController->getProducts());
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez GET."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
         }
         break;
 
     case 'get_product':
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
-            echo json_encode($productController->getProductById($_GET['id']));
+            sendJsonResponse($productController->getProductById($_GET['id']));
         } else {
-            echo json_encode(["error" => "ID de paiement manquant ou invalide"]);
+            sendJsonResponse(["error" => "ID de produit manquant ou invalide"], 400);
         }
         break;
 
-        case 'add_payment':
-          if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-              $data = json_decode(file_get_contents("php://input"), true);
-              if ($data) {
-                  echo json_encode($paymentController->addPayment($data));
-              } else {
-                  echo json_encode(["error" => "Données JSON invalides"]);
-              }
-          } else {
-              echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
-          }
-          break;
-  
-      case 'update_payment_status':
-          if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-              $data = json_decode(file_get_contents("php://input"), true);
-              if ($data) {
-                  echo json_encode($paymentController->updatePaymentStatus($data));
-              } else {
-                  echo json_encode(["error" => "Données JSON invalides"]);
-              }
-          } else {
-              echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
-          }
-          break;
-  
-      case 'get_payment':
-          if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['payment_id'])) {
-              echo json_encode($paymentController->getPayment($_GET['payment_id']));
-          } else {
-              echo json_encode(["error" => "ID de paiement manquant ou invalide"]);
-          }
-          break;
 
-          // Add new password reset routes
+    case 'add_payment':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            
+            if (!$data) {
+                error_log("No valid JSON received in add_payment: " . file_get_contents("php://input"));
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                exit;
+            }
+            
+            // Log the received data for debugging
+            error_log("Payment data received: " . print_r($data, true));
+            
+            // Now actually call the function
+            sendJsonResponse($paymentController->addPayment($data));
+        } else {
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
+        }
+        break;
+    
+    case 'get_or_create_achat':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            
+            if (!$data) {
+                error_log("No valid JSON received in get_or_create_achat: " . file_get_contents("php://input"));
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                exit;
+            }
+            
+            // Ensure user_id is provided
+            if (empty($data['user_id'])) {
+                sendJsonResponse(["error" => "ID utilisateur manquant"], 400);
+                exit;
+            }
+            
+            // Ensure cart_items is provided and is an array
+            if (empty($data['cart_items']) || !is_array($data['cart_items'])) {
+                error_log("Cart items missing or invalid: " . print_r($data, true));
+                sendJsonResponse(["error" => "Panier vide ou invalide"], 400);
+                exit;
+            }
+            
+            // Log the received cart items for debugging
+            error_log("Cart items received: " . print_r($data['cart_items'], true));
+            
+            // Call the PaymentController to get or create an achat
+            sendJsonResponse($paymentController->getOrCreateAchat($data['user_id'], $data['cart_items']));
+        } else {
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
+        }
+        break;
+    
+    case 'update_payment_status':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data) {
+                sendJsonResponse($paymentController->updatePaymentStatus($data));
+            } else {
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+            }
+        } else {
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
+        }
+        break;
+    
+    case 'get_payment':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['payment_id'])) {
+            sendJsonResponse($paymentController->getPayment($_GET['payment_id']));
+        } else {
+            sendJsonResponse(["error" => "ID de paiement manquant ou invalide"], 400);
+        }
+        break;
+        
+    case 'get_purchase_history':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['user_id'])) {
+            // Log the request for debugging
+            error_log("Fetching purchase history for user ID: " . $_GET['user_id']);
+        
+            $result = $paymentController->getUserPurchaseHistory($_GET['user_id']);
+        
+            // Log the result for debugging
+            error_log("Purchase history result: " . print_r($result, true));
+        
+            sendJsonResponse($result);
+        } else {
+            sendJsonResponse(["error" => "ID utilisateur manquant ou invalide"], 400);
+        }
+        break;
+
+       
+
+
     case 'forgot_password':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($authController->forgotPassword($data));
+                sendJsonResponse($authController->forgotPassword($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
@@ -207,32 +280,28 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $token = $_GET['token'] ?? '';
             $email = $_GET['email'] ?? '';
-            echo json_encode($authController->validateResetToken($token, $email));
+            sendJsonResponse($authController->validateResetToken($token, $email));
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez GET."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
         }
         break;
 
-   
-
     case 'reset_password':
-        error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $rawData = file_get_contents("php://input");
-            error_log("Raw JSON Data: " . $rawData);
-            $data = json_decode($rawData, true);
+            $data = json_decode(file_get_contents("php://input"), true);
             if ($data) {
-                echo json_encode($authController->resetPassword($data));
+                sendJsonResponse($authController->resetPassword($data));
             } else {
-                echo json_encode(["error" => "Données JSON invalides"]);
+                sendJsonResponse(["error" => "Données JSON invalides"], 400);
             }
         } else {
-            echo json_encode(["error" => "Méthode invalide. Utilisez POST."]);
+            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
         }
         break;
 
     default:
-        echo json_encode(["error" => "Action non reconnue"]);
+        sendJsonResponse(["error" => "Action non reconnue"], 404);
         break;
 }
 ?>
+
