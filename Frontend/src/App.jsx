@@ -1,35 +1,36 @@
 
 
+import { Routes, Route } from "react-router-dom";
+import { useState, createContext, useEffect } from "react";
+import Navbar from "./components/Navbar";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
+import Home from "./components/Home";
+import Services from "./components/ServicesSection";
+import Cart from "./components/Cart";
+import Payment from "./components/Payment";
+import { CartProvider } from "./context/CartContext";
+import PurchaseHistory from "./components/PurchaseHistory";
+import "./styles/App.css";
 
-
-import { Routes, Route } from "react-router-dom"
-import { useState, createContext, useEffect } from "react"
-import Navbar from "./components/Navbar"
-import Login from "./components/Login"
-import Signup from "./components/Signup"
-import ForgotPassword from "./components/ForgotPassword"
-import ResetPassword from "./components/ResetPassword"
-import Home from "./components/Home"
-import Services from "./components/ServicesSection"
-import Cart from "./components/Cart"
-import { CartProvider } from "./context/CartContext"
-import "./styles/App.css"
-
-export const AuthContext = createContext(null)
+// Création du contexte
+const AuthContext = createContext(null);
 
 function App() {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user")
-    return savedUser ? JSON.parse(savedUser) : null
-  })
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem("user", JSON.stringify(user))
+      localStorage.setItem("user", JSON.stringify(user));
     } else {
-      localStorage.removeItem("user")
+      localStorage.removeItem("user");
     }
-  }, [user])
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
@@ -41,6 +42,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/services" element={<Services />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/payment" element={<Payment />} />
+              <Route path="/purchase-history" element={<PurchaseHistory />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -50,10 +53,12 @@ function App() {
         </div>
       </CartProvider>
     </AuthContext.Provider>
-  )
+  );
 }
 
-export default App
+// Exportez le contexte et le composant App séparément
+export { AuthContext };
+export default App;
 
 
 
