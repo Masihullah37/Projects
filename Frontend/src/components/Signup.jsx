@@ -1,13 +1,14 @@
 
 
-
+// Import des dépendances nécessaires
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "react-feather";
 import Footer from "./Footer";
-import styles from "../styles/Auth.module.css"; // Updated import
+import styles from "../styles/Auth.module.css"; // Import des styles CSS
 
 function Signup() {
+  // État pour stocker les données du formulaire
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -18,42 +19,58 @@ function Signup() {
     confirmPassword: "",
   });
 
+  // État pour gérer les erreurs de validation
   const [errors, setErrors] = useState({});
+  // État pour gérer le message de succès
   const [success, setSuccess] = useState("");
+  // Hook pour la navigation
   const navigate = useNavigate();
 
+  // Fonction pour valider le mot de passe
   const validatePassword = (password) => {
+    // Regex: 8 caractères, majuscule, minuscule, chiffre et caractère spécial
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   };
 
+  // Fonction pour valider le numéro de téléphone (format français)
   const validatePhoneNumber = (phone) => {
     const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
     return phoneRegex.test(phone);
   };
 
+  // Fonction pour valider l'email
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  // Fonction pour valider l'ensemble du formulaire
   const validateForm = () => {
     const newErrors = {};
 
+    // Validation des champs obligatoires
     if (!formData.nom.trim()) newErrors.nom = "Le nom est obligatoire";
     if (!formData.prenom.trim()) newErrors.prenom = "Le prénom est obligatoire";
+    
+    // Validation de l'email
     if (!formData.email.trim()) {
       newErrors.email = "L'adresse email est obligatoire";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Veuillez entrer un format d'email valide";
     }
+    
+    // Validation de la confirmation d'email
     if (!formData.confirmEmail.trim()) newErrors.confirmEmail = "La confirmation de l'email est obligatoire";
+    
+    // Validation du téléphone
     if (!formData.telephone.trim()) {
       newErrors.telephone = "Le numéro de téléphone est obligatoire";
     } else if (!validatePhoneNumber(formData.telephone)) {
       newErrors.telephone = "Format de numéro de téléphone invalide";
     }
 
+    // Validation du mot de passe
     if (!formData.password.trim()) {
       newErrors.password = "Le mot de passe est obligatoire";
     } else if (!validatePassword(formData.password)) {
@@ -61,10 +78,12 @@ function Signup() {
         "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial";
     }
 
+    // Vérification que les emails correspondent
     if (formData.email !== formData.confirmEmail) {
       newErrors.confirmEmail = "Les adresses email ne correspondent pas";
     }
 
+    // Vérification que les mots de passe correspondent
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
     }
@@ -73,17 +92,21 @@ function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Gestion de la soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
     setSuccess("");
 
+    // Validation avant soumission
     if (!validateForm()) {
-      setTimeout(() => setErrors({}), 2000); // Clear errors after 2 seconds
+      // Effacer les erreurs après 2 secondes
+      setTimeout(() => setErrors({}), 2000);
       return;
     }
 
     try {
+      // Envoi des données au backend
       const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=register", {
         method: "POST",
         headers: {
@@ -94,12 +117,13 @@ function Signup() {
           prenom: formData.prenom,
           email: formData.email,
           password: formData.password,
-          telephone: formData.telephone.replace(/\s+/g, ""), // Remove spaces from phone number
+          telephone: formData.telephone.replace(/\s+/g, ""), // Suppression des espaces
         }),
       });
 
       const data = await response.json();
 
+      // Gestion des erreurs spécifiques
       if (data.error) {
         switch (data.error) {
           case "EMAIL_EXISTS":
@@ -114,6 +138,7 @@ function Signup() {
         return;
       }
 
+      // Message de succès et redirection
       setSuccess("Inscription réussie ! Redirection...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
@@ -128,10 +153,12 @@ function Signup() {
           <div className={styles.authContainer}>
             <h2 className={styles.authTitle}>S'inscrire</h2>
 
+            {/* Affichage des messages d'erreur/succès */}
             {errors.general && <div className={styles.errorMessage}>{errors.general}</div>}
             {success && <div className={styles.successMessage}>{success}</div>}
 
             <form onSubmit={handleSubmit}>
+              {/* Champ Nom */}
               <div className={styles.formGroup}>
                 <User className={styles.inputIcon} size={20} />
                 <input
@@ -145,6 +172,7 @@ function Signup() {
                 {errors.nom && <div className={styles.fieldError}>{errors.nom}</div>}
               </div>
 
+              {/* Champ Prénom */}
               <div className={styles.formGroup}>
                 <User className={styles.inputIcon} size={20} />
                 <input
@@ -158,6 +186,7 @@ function Signup() {
                 {errors.prenom && <div className={styles.fieldError}>{errors.prenom}</div>}
               </div>
 
+              {/* Champ Email */}
               <div className={styles.formGroup}>
                 <Mail className={styles.inputIcon} size={20} />
                 <input
@@ -172,6 +201,7 @@ function Signup() {
                 {errors.email && <div className={styles.fieldError}>{errors.email}</div>}
               </div>
 
+              {/* Champ Confirmation Email */}
               <div className={styles.formGroup}>
                 <Mail className={styles.inputIcon} size={20} />
                 <input
@@ -185,6 +215,7 @@ function Signup() {
                 {errors.confirmEmail && <div className={styles.fieldError}>{errors.confirmEmail}</div>}
               </div>
 
+              {/* Champ Téléphone */}
               <div className={styles.formGroup}>
                 <Phone className={styles.inputIcon} size={20} />
                 <input
@@ -198,6 +229,7 @@ function Signup() {
                 {errors.telephone && <div className={styles.fieldError}>{errors.telephone}</div>}
               </div>
 
+              {/* Champ Mot de passe */}
               <div className={styles.formGroup}>
                 <Lock className={styles.inputIcon} size={20} />
                 <input
@@ -211,6 +243,7 @@ function Signup() {
                 {errors.password && <div className={styles.fieldError}>{errors.password}</div>}
               </div>
 
+              {/* Champ Confirmation Mot de passe */}
               <div className={styles.formGroup}>
                 <Lock className={styles.inputIcon} size={20} />
                 <input
@@ -224,6 +257,7 @@ function Signup() {
                 {errors.confirmPassword && <div className={styles.fieldError}>{errors.confirmPassword}</div>}
               </div>
 
+              {/* Bouton de soumission */}
               <button type="submit" className={styles.authButton}>
                 Inscription
               </button>
@@ -231,6 +265,7 @@ function Signup() {
           </div>
         </div>
       </div>
+      {/* Pied de page */}
       <Footer />
     </div>
   );
