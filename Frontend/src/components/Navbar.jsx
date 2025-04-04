@@ -1,56 +1,72 @@
 
 
 
-import { useContext, useState, useEffect } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
-import { AuthContext } from "../App"
-import { CartContext } from "../context/CartContext"
-import styles from "../styles/Navbar.module.css"
-import logo from "../assets/images/logo.png"
-import cartIcon from "../assets/images/cart.png"
+
+
+
+import { useContext, useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { AuthContext } from "../App";
+import { CartContext } from "../context/CartContext";
+import styles from "../styles/Navbar.module.css";
+import logo from "../assets/images/logo.png";
+import cartIcon from "../assets/images/cart.png";
 
 function Navbar() {
-  const { user, setUser } = useContext(AuthContext)
-  const { cartCount } = useContext(CartContext)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  // États et contextes
+  const { user, setUser } = useContext(AuthContext); // Gestion de l'utilisateur
+  const { cartCount } = useContext(CartContext); // Nombre d'articles dans le panier
+  const navigate = useNavigate(); // Navigation programmatique
+  const location = useLocation(); // Localisation actuelle
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // État du menu mobile
+  const [searchQuery, setSearchQuery] = useState(""); // Requête de recherche
 
+  // Fonction de déconnexion
   const handleLogout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-    navigate("/login")
-    setIsMenuOpen(false)
-  }
+    setUser(null); // Réinitialise l'utilisateur
+    localStorage.removeItem("user"); // Supprime le stockage local
+    navigate("/login"); // Redirige vers la page de connexion
+    setIsMenuOpen(false); // Ferme le menu
+  };
 
+  // Effet pour fermer le menu en cliquant à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isMenuOpen && !event.target.closest(".navbar")) {
-        setIsMenuOpen(false)
+        setIsMenuOpen(false);
       }
-    }
+    };
 
-    document.addEventListener("click", handleClickOutside)
-    return () => document.removeEventListener("click", handleClickOutside)
-  }, [isMenuOpen])
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isMenuOpen]);
+
+  // Effet pour fermer le menu lors du changement de route
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname, location.hash]);
 
   return (
     <>
       <nav className={`navbar navbar-expand-lg navbar-dark bg-primary ${styles.navbar}`}>
         <div className={`container ${styles.navbarContainer}`}>
           <div className="d-flex align-items-center w-100">
-            {/* Mobile Toggle Button */}
-            <button className="navbar-toggler border-0" type="button" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {/* Bouton de bascule pour mobile */}
+            <button
+              className="navbar-toggler border-0"
+              type="button"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle navigation"
+            >
               <span className="navbar-toggler-icon"></span>
             </button>
 
-            {/* Brand Logo */}
+            {/* Logo de la marque */}
             <Link to="/" className="navbar-brand mx-3">
               <img src={logo || "/vite.svg"} alt="Logo" height="30" />
             </Link>
 
-            {/* Navigation Links */}
+            {/* Liens de navigation */}
             <div className={`collapse navbar-collapse ${isMenuOpen ? "show" : ""} ${styles.navbarCollapse}`}>
               <ul className={styles.navbarNav}>
                 <li className="nav-item">
@@ -58,11 +74,10 @@ function Navbar() {
                     to="/"
                     className={styles.navLink}
                     onClick={(e) => {
-                      setIsMenuOpen(false)
-                      // If already on home page, scroll to top
+                      // Si déjà sur la page d'accueil, fait défiler vers le haut
                       if (location.pathname === "/") {
-                        e.preventDefault()
-                        window.scrollTo({ top: 0, behavior: "smooth" })
+                        e.preventDefault();
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }}
                   >
@@ -70,25 +85,52 @@ function Navbar() {
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link to="/#services" className={styles.navLink} onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/#services" className={styles.navLink}>
                     Nos Services
                   </Link>
                 </li>
+                <li className="nav-item">
+                  <Link
+                    to="/#contact"
+                    className={styles.navLink}
+                    onClick={(e) => {
+                      // Si déjà sur la page d'accueil, fait défiler vers la section contact
+                      if (location.pathname === "/") {
+                        e.preventDefault();
+                        const contactSection = document.getElementById("contact");
+                        if (contactSection) {
+                          const yOffset = -120; // Ajustement pour afficher correctement
+                          const y = contactSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                          window.scrollTo({ top: y, behavior: "smooth" });
+                        }
+                      }
+                    }}
+                  >
+                    Contact
+                  </Link>
+                </li>
                 {user ? (
-                  <li className="nav-item">
-                    <button onClick={handleLogout} className={`btn btn-link ${styles.navLink}`}>
-                      Déconnexion
-                    </button>
-                  </li>
+                  <>
+                    <li className="nav-item">
+                      <Link to="/purchase-history" className={styles.navLink}>
+                        Mes commandes
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <button onClick={handleLogout} className={`btn btn-link ${styles.navLink}`}>
+                        Déconnexion
+                      </button>
+                    </li>
+                  </>
                 ) : (
                   <>
                     <li className="nav-item">
-                      <Link to="/login" className={styles.navLink} onClick={() => setIsMenuOpen(false)}>
+                      <Link to="/login" className={styles.navLink}>
                         Connexion
                       </Link>
                     </li>
                     <li className="nav-item">
-                      <Link to="/signup" className={styles.navLink} onClick={() => setIsMenuOpen(false)}>
+                      <Link to="/signup" className={styles.navLink}>
                         Inscription
                       </Link>
                     </li>
@@ -96,7 +138,7 @@ function Navbar() {
                 )}
               </ul>
 
-              {/* Search Bar */}
+              {/* Barre de recherche */}
               <div className={styles.searchBar}>
                 <input
                   type="text"
@@ -110,7 +152,7 @@ function Navbar() {
               </div>
             </div>
 
-            {/* Cart Icon with Counter */}
+            {/* Icône du panier avec compteur */}
             <Link to="/cart" className={styles.cartIcon}>
               <img src={cartIcon || "/vite.svg"} alt="Cart" style={{ height: "24px", width: "24px" }} />
               {cartCount > 0 && <span className={styles.cartCounter}>{cartCount}</span>}
@@ -118,11 +160,10 @@ function Navbar() {
           </div>
         </div>
       </nav>
-      {/* Add a spacer to prevent content from hiding behind the fixed navbar */}
+      {/* Espaceur pour éviter que le contenu ne soit caché derrière la navbar fixe */}
       <div className={styles.navbarSpacer}></div>
     </>
-  )
+  );
 }
 
-export default Navbar
-
+export default Navbar;
