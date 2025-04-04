@@ -1,6 +1,6 @@
 
 
- /* Main container */
+/* Main container */
 .homeContainer {
   max-width: 1200px;
   margin: 0 auto;
@@ -132,27 +132,17 @@
   transform: translateY(-50%);
 }
 
-/* Change the background color of the active indicator */
-.productCarousel :global(.carousel-indicators .active) {
-  background-color: #004d6e; 
-}
-
-
-
 .productCarousel :global(.carousel-indicators) {
   bottom: -40px;
 }
 
 .productCarousel :global(.carousel-indicators button) {
-  background-color: #a9dcef  ;
+  background-color: #a9dcef;
   width: 12px;
   height: 12px;
   border-radius: 50%;
   margin: 0 5px;
-  
 }
-
-
 
 .productGroup {
   display: flex;
@@ -218,12 +208,14 @@
   flex-grow: 1;
 }
 
+/* Adjust the product footer for better mobile display */
 .productFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
-  gap: 0.75rem; /* Add gap between price and button */
+  gap: 0.5rem; /* Reduced gap between price and button */
+  flex-wrap: wrap; /* Allow wrapping on very small screens */
 }
 
 .productPrice {
@@ -245,25 +237,58 @@
   transition: background-color 0.2s ease;
   font-size: 0.9rem; /* Slightly smaller font */
   flex-shrink: 0; /* Prevent button from shrinking */
+  white-space: nowrap; /* Prevent text wrapping inside button */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .addToCartButton:hover {
   background-color: #7fcae2;
 }
 
-/* Repair Section - Reduced height */
+/* Add a container to group repair form and contact section */
+.contactContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+/* Update repair section to work better with contact section */
 .repairSection {
-  background-color: #f8f9fa;
-  padding: 1.25rem;
-  border-radius: 8px;
-  max-width: 85%;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+  scroll-margin-top: 80px;
+}
+
+/* Add contact section container */
+.contactSectionContainer {
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
-  scroll-margin-top: 120px; /* Add scroll margin to ensure title is visible */
+  scroll-margin-top: 80px;
+}
+
+/* Repair form container with improved styling */
+.repairFormContainer {
+  background: linear-gradient(to bottom, #f8f9fa, #e9f7fc);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 77, 110, 0.1);
+  padding: 1.5rem;
+  border: 1px solid rgba(169, 220, 239, 0.3);
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .repairForm {
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  overflow: hidden; /* Prevent width expansion */
 }
 
 .formRow {
@@ -285,24 +310,45 @@
   font-size: 0.9rem;
 }
 
+.requiredField {
+  color: #dc3545;
+  margin-left: 2px;
+}
+
+.requiredFieldsNote {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+  text-align: right;
+}
+
+/* Enhanced form inputs */
 .formGroup input,
 .formGroup textarea {
   width: 100%;
-  padding: 0.6rem;
+  padding: 0.7rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.95rem;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background-color: white;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .formGroup input:focus,
 .formGroup textarea:focus {
   border-color: #a9dcef;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(169, 220, 239, 0.25);
+}
+
+.inputError {
+  border-color: #dc3545 !important;
+  background-color: rgba(220, 53, 69, 0.05);
 }
 
 .formGroup textarea {
-  height: 100px;
+  height: 90px;
   resize: vertical;
 }
 
@@ -312,40 +358,54 @@
   gap: 0.75rem;
 }
 
+/* Enhanced checkbox styling */
 .checkboxLabel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
   color: #333;
+  padding: 0.3rem 0;
+  transition: color 0.2s ease;
+}
+
+.checkboxLabel:hover {
+  color: #004d6e;
 }
 
 .checkboxLabel input[type="checkbox"] {
-  width: auto;
+  width: 18px;
+  height: 18px;
   margin-right: 0.5rem;
+  accent-color: #004d6e;
 }
 
 .submitButton {
-  background-color: #4daad3;
+  background: linear-gradient(to bottom, #004d6e, #003a54);
   color: white;
   border: none;
   width: 100%;
-  padding: 0.7rem;
-  border-radius: 4px;
+  padding: 0.8rem;
+  border-radius: 6px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
   margin-top: 0.75rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .submitButton:hover {
-  background-color: #003a54;
+  background: linear-gradient(to bottom, #003a54, #002a3e);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .submitButton:disabled {
-  background-color: #cccccc;
+  background: #cccccc;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Loading, Error, and Empty States */
@@ -379,8 +439,15 @@
 }
 
 .errorMessage {
-  color: #dc3545;
-  margin-bottom: 1rem;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 1.2rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .retryButton {
@@ -392,32 +459,36 @@
   cursor: pointer;
 }
 
-/* Success and Error Messages */
-.successMessage,
-.errorMessage {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  animation: fadeInOut 3s ease-in-out;
-}
-
+/* Enhanced success message */
 .successMessage {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
+  padding: 1.2rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  animation: fadeInOut 5s ease-in-out;
+  font-weight: 500;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.errorMessage {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+.successMessage::before {
+  content: "✓";
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: bold;
 }
 
 .fieldError {
   color: #dc3545;
   font-size: 0.85rem;
   margin-top: 0.25rem;
+  font-weight: 500;
+  display: block; /* Ensure it doesn't expand the parent */
+  width: 100%;
+  overflow-wrap: break-word;
 }
 
 @keyframes fadeInOut {
@@ -486,9 +557,33 @@
   .checkboxGroup {
     grid-template-columns: 1fr 1fr;
   }
+
+  .contactContainer {
+    flex-direction: column; /* Stack vertically on smaller screens */
+    gap: 1rem;
+  }
+
+  .repairSection,
+  .contactSectionContainer {
+    max-width: 95%;
+  }
 }
 
+/* Adjust responsive styles for better button display */
 @media (max-width: 767px) {
+  .repairFormContainer {
+    padding: 1rem;
+  }
+
+  .formGroup input,
+  .formGroup textarea {
+    padding: 0.6rem;
+  }
+
+  .submitButton {
+    padding: 0.7rem;
+  }
+
   .formRow {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -557,21 +652,18 @@
   }
 
   .productPrice {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .addToCartButton {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
   }
 
-  .repairSection {
-    max-width: 90%;
-    padding: 1.25rem;
-  }
-
-  .repairForm {
-    max-width: 100%;
+  .notification {
+    right: 10px;
+    left: 10px;
+    width: auto;
   }
 }
 
@@ -610,4 +702,15 @@
     padding: 2rem;
   }
 }
+
+/* Form note styling */
+.formNote {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+  text-align: right;
+  font-style: italic;
+}
+
+
 
