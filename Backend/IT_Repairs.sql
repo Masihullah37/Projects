@@ -40,7 +40,7 @@
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE achats (
+    CREATE TABLE achats_old (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL, -- Foreign key referencing the users table
         product_id INT NOT NULL, -- Foreign key referencing the products table
@@ -50,15 +50,58 @@
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE -- Cascade delete if product is deleted
     );
 
+    -- Main purchases table (renamed to achats)
+   CREATE TABLE achats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+    );
+
+
+    CREATE TABLE achats_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    achat_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (achat_id) REFERENCES achats(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES produits(id) ON DELETE CASCADE
+    );
+
+    
+
+    -- Payments table
     CREATE TABLE paiements (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL, -- Foreign key referencing the users table
-        purchase_id INT NOT NULL, -- Foreign key referencing the purchases table
-        payment_method ENUM('credit_card', 'paypal') NOT NULL, -- Payment method used
-        payment_status ENUM('pending', 'success', 'failed') DEFAULT 'pending', -- Payment status
-        amount DECIMAL(10, 2) NOT NULL, -- Total amount paid
-        transaction_id VARCHAR(255), -- Transaction ID from payment gateway
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Date and time of payment
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, -- Cascade delete if user is deleted
-        FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE -- Cascade delete if purchase is deleted
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    achat_id INT NOT NULL,
+    payment_method ENUM('credit_card', 'paypal', 'bank_transfer') NOT NULL,
+    payment_status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
+    amount DECIMAL(10, 2) NOT NULL,
+    transaction_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (achat_id) REFERENCES achats(id) ON DELETE CASCADE
+    );
+
+    -- Shipping addresses table
+    CREATE TABLE adresses_livraison (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    paiement_id INT NOT NULL,
+    nom VARCHAR(255) NOT NULL,
+    adresse_ligne1 VARCHAR(255) NOT NULL,
+    adresse_ligne2 VARCHAR(255),
+    ville VARCHAR(100) NOT NULL,
+    departement VARCHAR(100) NOT NULL,
+    code_postal VARCHAR(20) NOT NULL,
+    pays VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (paiement_id) REFERENCES paiements(id) ON DELETE CASCADE
     );
