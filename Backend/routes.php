@@ -1,84 +1,89 @@
-<?php
-ob_start() ;
-// Enable CORS and set headers
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
+    <?php
+    ob_start() ;
+    // Enable CORS and set headers
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Content-Type: application/json");
 
-// Handle OPTIONS requests for CORS
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header("HTTP/1.1 200 OK");
-    exit();
-}
+    // Handle OPTIONS requests for CORS
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        header("HTTP/1.1 200 OK");
+        exit();
+    }
 
-// Disable error reporting to avoid interfering with JSON responses
-ini_set('display_errors', 0);
-error_reporting(0);
+    // Disable error reporting to avoid interfering with JSON responses
+    ini_set('display_errors', 0);
+    error_reporting(0);
 
-// Include required files
-require_once __DIR__ . '/vendor/autoload.php';
-require_once 'Config/Database.php';
-require_once 'Controllers/AuthController.php';
-require_once 'Controllers/PurchaseController.php';
-require_once 'Controllers/RepairController.php';
-require_once 'Controllers/ProductController.php';
-require_once 'Controllers/PaymentController.php';
+    // Include required files
+    require_once __DIR__ . '/vendor/autoload.php';
+    require_once 'Config/Database.php';
+    require_once 'Controllers/AuthController.php';
+    require_once 'Controllers/PurchaseController.php';
+    require_once 'Controllers/RepairController.php';
+    require_once 'Controllers/ProductController.php';
+    require_once 'Controllers/PaymentController.php';
 
-// Initialize the database
-$database = new Database();
-$conn = $database->getConnection();
+    // Initialize the database
+    $database = new Database();
+    $conn = $database->getConnection();
 
-// Initialize controllers
-$authController = new AuthController($conn);
-$purchaseController = new PurchaseController($conn);
-$repairController = new RepairController($conn);
-$productController = new ProductController($conn);
-$paymentController = new PaymentController($conn);
+    // Initialize controllers
+    $authController = new AuthController($conn);
+    $purchaseController = new PurchaseController($conn);
+    $repairController = new RepairController($conn);
+    $productController = new ProductController($conn);
+    $paymentController = new PaymentController($conn);
 
-// Get the action from the request
-$action = $_GET['action'] ?? '';
+    // Get the action from the request
+    $action = $_GET['action'] ?? '';
 
-// Debugging: Log the action
-error_log("Action received: " . $action);
+    // Debugging: Log the action
+    error_log("Action received: " . $action);
 
-// Function to send a JSON response
-function sendJsonResponse($data, $statusCode = 200) {
-    // Ensure no unwanted output before sending the JSON
-    ob_end_clean();  // Clean the buffer if there's any unwanted output
-    http_response_code($statusCode);
-    echo json_encode($data);
-    exit;
-}
+    // Function to send a JSON response
+    function sendJsonResponse($data, $statusCode = 200) {
+        // Ensure no unwanted output before sending the JSON
+        ob_end_clean();  // Clean the buffer if there's any unwanted output
+        http_response_code($statusCode);
+        echo json_encode($data);
+        exit;
+    }
 
 
-// Handle the action
-switch ($action) {
-    case 'register':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                sendJsonResponse($authController->register($data));
+    // Gère l'action reçue via le paramètre 'action'
+    switch ($action) {
+        case 'register':
+              // Vérifie que la méthode HTTP utilisée est POST
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Récupère et décode les données JSON envoyées dans la requête
+                $data = json_decode(file_get_contents("php://input"), true);
+
+                // Si les données sont valides, on appelle la méthode register du contrôleur
+                if ($data) {
+                    sendJsonResponse($authController->register($data));
+                } else {
+                    sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                }
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                // Si la méthode HTTP n'est pas POST, retourne une erreur 405
+                sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
 
-    case 'login':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                sendJsonResponse($authController->login($data));
+        case 'login':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    sendJsonResponse($authController->login($data));
+                } else {
+                    sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                }
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
 
     case 'add_purchase':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
