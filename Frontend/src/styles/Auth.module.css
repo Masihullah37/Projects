@@ -14,11 +14,12 @@
 .authContainer {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   width: 100%;
-  max-width: 400px;
-  margin: 15px auto;
+  max-width: 380px;
+  margin: 10px auto;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .authTitle {
@@ -38,7 +39,7 @@
 
 .formGroup {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.92rem;
   display: flex;
   flex-direction: column;
 }
@@ -81,6 +82,7 @@
   height: 40px; 
 }
 
+
 .formGroup input:focus {
   border-color: #2196f3;
   outline: none;
@@ -107,7 +109,7 @@
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.2s;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 
 .authButton:hover {
@@ -220,13 +222,17 @@
 
 .fieldError {
   color: #ff5252;
-  font-size: 12px;
+  font-size: 11px;
   margin-top: 4px;
-  margin-left: 36px;
+  margin-left: 22px;
   position: absolute; /* Position the error message absolutely */
   top: 100%; /* Place it below the input */
   left: 0;
   width: 100%;
+  line-height: 1.2; /* Add line height for better readability */
+  word-wrap: break-word; 
+  white-space: normal; /* Allow text to wrap */
+  z-index: 1; 
 }
 
 .formGroup input.error {
