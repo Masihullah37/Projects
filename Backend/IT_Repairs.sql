@@ -80,12 +80,14 @@
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     achat_id INT NOT NULL,
+    adresse_livraison_id INT NOT NULL,
     payment_method ENUM('credit_card', 'paypal', 'bank_transfer') NOT NULL,
     payment_status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
     amount DECIMAL(10, 2) NOT NULL,
     transaction_id VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (adresse_livraison_id) REFERENCES adresses_livraison(id),
     FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     FOREIGN KEY (achat_id) REFERENCES achats(id) ON DELETE CASCADE
     );
@@ -93,7 +95,6 @@
     -- Shipping addresses table
     CREATE TABLE adresses_livraison (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    paiement_id INT NOT NULL,
     nom VARCHAR(255) NOT NULL,
     adresse_ligne1 VARCHAR(255) NOT NULL,
     adresse_ligne2 VARCHAR(255),
@@ -103,5 +104,4 @@
     pays VARCHAR(100) NOT NULL,
     telephone VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (paiement_id) REFERENCES paiements(id) ON DELETE CASCADE
     );
