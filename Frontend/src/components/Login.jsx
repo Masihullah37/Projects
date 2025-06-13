@@ -24,64 +24,65 @@ function Login() {
   const { setUser } = useContext(AuthContext);
 
   // Fonction de soumission du formulaire
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Réinitialisation des erreurs précédentes
     setErrors({});
 
-    // Validation des champs vides
+    // Validation frontend 
     let hasErrors = false;
     const newErrors = {};
-
+    
     if (!formData.email.trim()) {
-      newErrors.email = "Veuillez remplir le champ email";
-      hasErrors = true;
+        newErrors.email = "Veuillez remplir le champ email";
+        hasErrors = true;
     }
     if (!formData.password.trim()) {
-      newErrors.password = "Veuillez remplir le champ mot de passe";
-      hasErrors = true;
+        newErrors.password = "Veuillez remplir le champ mot de passe";
+        hasErrors = true;
     }
-
-    // Si erreurs, mise à jour de l'état et arrêt
     if (hasErrors) {
-      setErrors(newErrors);
-      return;
+        setErrors(newErrors);
+        return;
     }
 
     try {
-      // Requête vers le backend pour la connexion
-      const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+        const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: formData.email,
+                password: formData.password
+            }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      // Gestion des erreurs du backend
-      if (data.error) {
-        setErrors((prevErrors) => ({ ...prevErrors, general: data.error }));
-        return;
-      }
+        if (data.error) {
+            switch(data.error) {
+                case "EMPTY_EMAIL":
+                    setErrors({ email: "Veuillez remplir le champ email" });
+                    break;
+                case "EMPTY_PASSWORD":
+                    setErrors({ password: "Veuillez remplir le champ mot de passe" });
+                    break;
+                case "INVALID_CREDENTIALS":
+                    setErrors({ general: "Email ou mot de passe incorrect" });
+                    break;
+                default:
+                    setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
+            }
+            return;
+        }
 
-      // Connexion réussie - mise à jour du contexte et redirection
-      setUser(data);
-      localStorage.setItem("user", JSON.stringify(data)); // Stockage local
-      navigate("/cart"); // Redirection vers le panier
+        // Connexion réussie
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        navigate("/cart");
     } catch (err) {
-      // Gestion des erreurs réseau
-      setErrors((prevErrors) => ({ 
-        ...prevErrors, 
-        general: "Une erreur est survenue. Veuillez réessayer." 
-      }));
+        setErrors({ general: "Erreur réseau. Veuillez réessayer." });
     }
-  };
+};
 
   // Rendu du composant
   return (
