@@ -92,59 +92,50 @@ function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Gestion de la soumission du formulaire
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccess("");
+// Gestion de la soumission du formulaire
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setErrors({});
+  setSuccess("");
 
-    // Validation avant soumission
-    if (!validateForm()) {
-      // Effacer les erreurs après 2 secondes
-      setTimeout(() => setErrors({}), 2000);
-      return;
+  if (!validateForm()) {
+    setTimeout(() => setErrors({}), 2000);
+    return;
+  }
+
+  const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nom: formData.nom,
+      prenom: formData.prenom,
+      email: formData.email,
+      password: formData.password,
+      telephone: formData.telephone.replace(/\s+/g, ""),
+    }),
+  });
+
+  const data = await response.json();
+
+  if (data.success) {
+    setSuccess("Inscription réussie ! Redirection...");
+    setTimeout(() => navigate("/login"), 2000);
+  } else {
+    switch(data.error) {
+      case "EMAIL_EXISTS":
+        setErrors({ email: "Cette adresse email est déjà utilisée" });
+        break;
+      case "PHONE_EXISTS":
+        setErrors({ telephone: "Ce numéro de téléphone est déjà utilisé" });
+        break;
+      case "REGISTRATION_FAILED":
+      default:
+        setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
     }
+  }
+};
 
-    try {
-      // Envoi des données au backend
-      const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nom: formData.nom,
-          prenom: formData.prenom,
-          email: formData.email,
-          password: formData.password,
-          telephone: formData.telephone.replace(/\s+/g, ""), // Suppression des espaces
-        }),
-      });
-
-      const data = await response.json();
-
-      // Gestion des erreurs spécifiques
-      if (data.error) {
-        switch (data.error) {
-          case "EMAIL_EXISTS":
-            setErrors({ email: "Cette adresse email est déjà utilisée" });
-            break;
-          case "PHONE_EXISTS":
-            setErrors({ telephone: "Ce numéro de téléphone est déjà utilisé" });
-            break;
-          default:
-            setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
-        }
-        return;
-      }
-
-      // Message de succès et redirection
-      setSuccess("Inscription réussie ! Redirection...");
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (err) {
-      setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
-    }
-  };
+  
 
   return (
     <div className={styles.pageContainer}>
