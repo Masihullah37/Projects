@@ -27,45 +27,56 @@ function ForgotPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Clear previous errors and messages
     setErrors({});
     setMessage({ type: "", text: "" });
 
-    // Validate email
+    // Frontend validation remains
     if (!email.trim()) {
-      setErrors({ email: "Veuillez remplir le champ email" });
-      return;
+        setErrors({ email: "Veuillez remplir le champ email" });
+        return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=forgot_password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
+        const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=forgot_password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.error) {
-        setMessage({ type: "error", text: data.error });
-      } else if (data.success) {
-        setMessage({ type: "success", text: data.success });
-        setEmail(""); // Clear the email field
-      }
+        if (data.error) {
+            switch(data.error) {
+                case "EMPTY_EMAIL":
+                    setErrors({ email: "Veuillez remplir le champ email" });
+                    break;
+                case "EMAIL_NOT_FOUND":
+                    setMessage({ type: "error", text: "Cette adresse email n'est pas enregistrée" });
+                    break;
+                case "RESET_ALREADY_SENT":
+                    setMessage({ type: "error", text: "Un lien a déjà été envoyé. Veuillez vérifier votre email." });
+                    break;
+                case "EMAIL_SEND_FAILED":
+                case "EMAIL_SEND_ERROR":
+                case "TOKEN_CREATION_FAILED":
+                default:
+                    setMessage({ type: "error", text: "Une erreur est survenue. Veuillez réessayer." });
+            }
+        } else if (data.success) {
+            setMessage({ 
+                type: "success", 
+                text: "Un email de réinitialisation a été envoyé à votre adresse" 
+            });
+            setEmail("");
+        }
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: "Une erreur est survenue. Veuillez réessayer.",
-      });
+        setMessage({ type: "error", text: "Erreur de connexion. Veuillez réessayer." });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+};
 
   return (
     <div className={styles.pageContainer}>
