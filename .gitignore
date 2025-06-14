@@ -16,6 +16,7 @@ Backend/*.log
 Backend/*.cache
 Backend/Database.php
 Backend/Config/mail/mail_config.php
+Backend/.env
 
 
 # ====================
