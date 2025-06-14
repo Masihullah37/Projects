@@ -14,7 +14,8 @@ class PaymentController {
     public function __construct($conn) {
         $this->paymentModel = new PaymentModel($conn);
         $this->productModel = new ProductModel($conn);
-        $this->stripeSecretKey = 'REMOVED';
+        $this->stripeSecretKey = getenv('STRIPE_SECRET_KEY');
+;
     }
     
     public function addPayment($data) {
