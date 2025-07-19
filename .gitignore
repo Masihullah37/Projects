@@ -1,10 +1,12 @@
+
+
 # ====================
 # React Frontend
 # ====================
 Frontend/node_modules/
 Frontend/build/
 Frontend/dist/
-Frontend/.env.local
+Frontend/.env*
 Frontend/public/vite.svg
 Frontend/src/assets/react.svg
 
@@ -14,10 +16,9 @@ Frontend/src/assets/react.svg
 Backend/vendor/
 Backend/*.log
 Backend/*.cache
+Backend/.env*
+Backend/Config/mail/email_config.php
 Backend/Database.php
-Backend/Config/mail/mail_config.php
-Backend/.env
-
 
 # ====================
 # System / Editor Files
@@ -29,3 +30,4 @@ Thumbs.db
 *.bak
 *.swp
 *.tmp
+
