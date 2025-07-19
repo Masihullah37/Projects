@@ -1,27 +1,45 @@
 <?php
+
+
 class Database {
-    private $host = 'localhost';
-    private $db = 'it_repair_shop';
-    private $user = 'root';
-    private $pass = 'Roshan';
+    private $host;
+    private $db;
+    private $user;
+    private $pass;
     private $conn;
 
-    // Constructeur : établit la connexion à la base de données avec PDO
     public function __construct() {
+      
+         // Determine environment (local or production)
+        $isProduction = (getenv('APP_ENV') === 'production' || $_SERVER['HTTP_HOST'] !== 'localhost');
+
+        // Load the correct .env file
+        $dotenv = Dotenv\Dotenv::createImmutable(
+            __DIR__ . '/../', 
+            $isProduction ? '.env.production' : '.env.local'
+        );
+        $dotenv->load();
+
+        $this->host = $_ENV['DB_HOST'];
+        $this->db   = $_ENV['DB_NAME'];
+        $this->user = $_ENV['DB_USER'];
+        $this->pass = $_ENV['DB_PASS'];
+
         try {
-             // Set PHP timezone (Europe/Paris)
-             date_default_timezone_set('Europe/Paris');
+            date_default_timezone_set('Europe/Paris');
             $this->conn = new PDO("mysql:host=$this->host;dbname=$this->db", $this->user, $this->pass);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->exec("SET time_zone = '+01:00'");  // Paris Timezone (Europe)
+            $this->conn->exec("SET time_zone = '+01:00'");
+            error_log("Database connection successful");
         } catch (PDOException $e) {
+            error_log("Database connection failed: " . $e->getMessage());
             die("Connection failed: " . $e->getMessage());
         }
     }
 
-    // Retourne la connexion à la base de données
     public function getConnection() {
         return $this->conn;
     }
 }
+
 ?>
