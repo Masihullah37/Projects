@@ -60,25 +60,7 @@ class UserModel
      * @param string $telephone
      * @return array|false
      */
-    // public function checkIfUserExists($email, $telephone) 
-    // {
-    //     // Requête SQL pour vérifier l'existence de l'email ou du téléphone
-    //     $query = "SELECT email, telephone FROM utilisateurs 
-    //               WHERE email = :email OR telephone = :telephone 
-    //               LIMIT 1";
-        
-    //     // Préparation de la requête
-    //     $stmt = $this->conn->prepare($query);
-        
-    //     // Exécution de la requête avec les paramètres
-    //     $stmt->execute([
-    //         ':email' => $email,
-    //         ':telephone' => $telephone
-    //     ]);
-        
-    //     // Retourner les résultats sous forme de tableau associatif
-    //     return $stmt->fetch(PDO::FETCH_ASSOC);
-    // }
+  
 
     public function checkIfUserExists($email, $telephone) 
 {

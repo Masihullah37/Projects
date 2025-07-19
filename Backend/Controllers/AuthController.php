@@ -54,41 +54,6 @@ class AuthController {
                 "message" => "Utilisateur inscrit avec succès"];
     }
 
-//     public function register($data) {
-//     $nom = $data['nom'] ?? '';
-//     $prenom = $data['prenom'] ?? '';
-//     $email = $data['email'] ?? '';
-//     $telephone = $data['telephone'] ?? '';
-//     $password = $data['password'] ?? '';
-
-//     // Vérifier si l'utilisateur existe déjà
-//     $userExists = $this->usersModel->checkIfUserExists($email, $telephone);
-
-//     if ($userExists) {
-//         if ($userExists['email'] === $email) {
-//             error_log("Cette adresse email est déjà utilisée: " . $email); // Debugging
-//             return ["error" => "EMAIL_EXISTS"];
-//         } elseif ($userExists['telephone'] === $telephone) {
-//             error_log("Ce numéro de téléphone est déjà utilisé: " . $telephone); // Debugging
-//             return ["error" => "PHONE_EXISTS"];
-//         }
-//     }
-
-//     // Inscription de l'utilisateur
-//     $registered = $this->usersModel->register($nom, $prenom, $email, $password, $telephone); // Corrected parameter order
-
-  
-//     if (!$registered) {
-//         // Échec de l'inscription en base de données
-//         // On retourne un code d'erreur générique qui sera géré par le frontend
-//         return ["error" => "REGISTRATION_FAILED"]; 
-//     }
-        
-//     // Succès de l'opération d'inscription
-//     // On retourne un simple indicateur de succès (le message sera géré côté frontend)
-//     return ["success" => true];
-// }
-
     public function login($data) {
 
         // Récupération des données envoyées (avec des valeurs par défaut vides si non définies)
@@ -165,52 +130,6 @@ class AuthController {
             return ["error" => "EMAIL_SEND_ERROR"];
         }
     }
-    
-    // public function forgotPassword($data) {
-
-    //     $email = $data['email'] ?? '';
-        
-    //     if (empty($email)) {
-    //         return ["error" => "Veuillez remplir le champ email"];
-    //     }
-        
-    //     // Check if user exists
-    //     $user = $this->usersModel->findUserByEmail($email);
-    //     if (!$user) {
-    //         // Return error for non-existent email
-    //         return ["error" => "Cette adresse email n'est pas enregistrée"];
-    //     }
-
-    //     // Check if a reset token already exists and is still valid
-    //     if ($user['reset_password_token'] && 
-    //         strtotime($user['reset_password_expires']) > time()) {
-    //         return ["error" => "Un lien de réinitialisation a déjà été envoyé. Veuillez vérifier votre email ou attendre avant de faire une nouvelle demande."];
-    //     }
-        
-    //     // Create reset token
-    //     $token = $this->usersModel->createPasswordResetToken($email);
-        
-    //     if ($token) {
-    //         $frontendUrl = "http://localhost:5173"; 
-    //         $resetUrl = "$frontendUrl/reset-password?token=" . $token . "&email=" . urlencode($email);
-            
-    //         try {
-    //             // Send email
-    //             $emailSent = $this->emailService->sendPasswordResetEmail($email, $resetUrl);
-                
-    //             if ($emailSent) {
-    //                 return ["success" => "Un email de réinitialisation a été envoyé"];
-    //             } else {
-    //                 return ["error" => "Erreur lors de l'envoi de l'email"];
-    //             }
-    //         } catch (Exception $e) {
-    //             error_log("Email error: " . $e->getMessage());
-    //             return ["error" => "Erreur lors de l'envoi de l'email"];
-    //         }
-    //     }
-        
-    //     return ["error" => "Une erreur est survenue lors de la réinitialisation"];
-    // }
    
     
     public function validateResetToken($token, $email) {
@@ -238,24 +157,6 @@ class AuthController {
         return ["error" => "INVALID_OR_EXPIRED_LINK"];
     }
     
-    
-    // public function resetPassword($data) {
-    //     $token = trim($data['token']) ?? '';
-    //     $email = trim($data['email']) ?? '';
-    //     $password = $data['password'] ?? '';
-        
-    //     if (empty($token) || empty($email) || empty($password)) {
-    //         return ["error" => "Données invalides"];
-    //     }
-        
-    //     $reset = $this->usersModel->resetPassword($email, $token, $password);
-        
-    //     if ($reset) {
-    //         return ["success" => "Mot de passe réinitialisé avec succès"];
-    //     }
-        
-    //     return ["error" => "Lien de réinitialisation invalide ou expiré"];
-    // }
 }
 
 

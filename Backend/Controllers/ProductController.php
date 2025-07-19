@@ -23,10 +23,11 @@ class ProductController {
         return $this->productModel->addProduct($productData);
     }
 
-    // Récupérer tous les produits avec stock > 0
+    // // Récupérer tous les produits avec stock > 0
     public function getProducts() {
         return $this->productModel->getProducts();
     }
+
     
     // Récupérer tous les produits, y compris ceux avec stock = 0
     public function getAllProducts() {
