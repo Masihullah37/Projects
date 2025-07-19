@@ -8,6 +8,7 @@ import { Mail, Lock } from "react-feather";
 import { AuthContext } from "../App"; // Contexte d'authentification
 import Footer from "./Footer"; // Composant Footer réutilisable
 import styles from "../styles/Auth.module.css"; // Styles CSS Modules
+import { fetchApi } from "../config/api";
 
 function Login() {
   // État pour stocker les données du formulaire
@@ -47,8 +48,9 @@ function Login() {
     }
 
     try {
-        const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=login", {
+        const response = await fetchApi('login', {
             method: "POST",
+            credentials: 'include', // ✅ Add this
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email: formData.email,
@@ -56,7 +58,8 @@ function Login() {
             }),
         });
 
-        const data = await response.json();
+        const data = await response.json()
+
 
         if (data.error) {
             switch(data.error) {

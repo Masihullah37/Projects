@@ -6,6 +6,7 @@ import { CartContext } from "../context/CartContext"
 import { AuthContext } from "../App"
 import { Trash2, Minus, Plus } from "react-feather"
 import styles from "../styles/Cart.module.css"
+import Footer from "./Footer";
 
 function Cart() {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useContext(CartContext)
@@ -171,6 +172,8 @@ function Cart() {
           </div>
         </div>
       </div>
+        {/* Pied de page */}
+            <Footer />
     </div>
   )
 }

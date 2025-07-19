@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import styles from "../styles/Home.module.css"
+import { fetchApi } from "../config/api"
 
 function RepairRequestForm() {
   const [formData, setFormData] = useState({
@@ -117,7 +118,7 @@ function RepairRequestForm() {
     setFormStatus({ success: false, error: null })
 
     try {
-      const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=add_repair", {
+      const response = await fetchApi(`add_repair`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

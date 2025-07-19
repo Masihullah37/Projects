@@ -4,6 +4,7 @@ import { useContext, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AuthContext } from "../App"
 import styles from "../styles/PurchaseHistory.module.css"
+import { fetchApi } from "../config/api"
 
 function PurchaseHistory() {
   const { user } = useContext(AuthContext)
@@ -24,9 +25,10 @@ function PurchaseHistory() {
       try {
         console.log("Fetching purchase history for user ID:", user.id)
 
-        const response = await fetch(
-          `http://localhost/IT_Repairs/Backend/routes.php?action=get_purchase_history&user_id=${user.id}`,
-        )
+        const response = await fetchApi('get_purchase_history', {
+         method: 'GET',
+         credentials: 'include' // 🔐 Include the session cookie
+    });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)

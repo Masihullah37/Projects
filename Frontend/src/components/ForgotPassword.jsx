@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Mail } from "react-feather";
 import Footer from "./Footer";
 import styles from "../styles/Auth.module.css"; // Updated import
+import { fetchApi } from '../config/api';
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -39,7 +40,8 @@ function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-        const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=forgot_password", {
+        // const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=forgot_password"
+         const response = await fetchApi('forgot_password', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),

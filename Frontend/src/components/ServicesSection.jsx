@@ -1,20 +1,23 @@
-
-
-
 import { useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import styles from "../styles/ServicesSection.module.css";
 
-function ServicesSection({ repairFormRef }) {
-   // Référence pour la section des services
+function ServicesSection() {
+  // Référence pour la section des services
   const servicesSectionRef = useRef(null);
+  const navigate = useNavigate();
 
-  const scrollToRepairForm = () => {
-    if (repairFormRef.current) {
-      const yOffset = -100; // Adjust this value as needed
-      const element = repairFormRef.current;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-
-      window.scrollTo({ top: y, behavior: "smooth" });
+  const handleContactClick = () => {
+    if (window.location.pathname !== '/') {
+      navigate('/#contact'); // Redirect to home with contact hash
+    } else {
+      // If already on home page, scroll to contact
+      const contactSection = document.getElementById('contact');
+      if (contactSection) {
+        const yOffset = -100;
+        const y = contactSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
     }
   };
 
@@ -30,7 +33,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             Notre équipe d'experts assure une réparation rapide et efficace de vos appareils portables.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -41,7 +44,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             Gardez vos données en toute sécurité dans un espace privé, flexible et adapté à vos besoins.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -52,7 +55,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             Restauration après panne - Récupération logicielle, environnement contrôlé.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -63,7 +66,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             Maintenance PC, éradication des virus et malwares, renforcement de la sécurité, sauvegarde de données.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -74,7 +77,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             À votre service chez vous, en entreprise ou à distance, nous résolvons vos problèmes informatiques.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -85,7 +88,7 @@ function ServicesSection({ repairFormRef }) {
           <p className={styles.serviceDescription}>
             Conception de sites web sur mesure, modernes et adaptés à vos besoins professionnels.
           </p>
-          <button onClick={scrollToRepairForm} className={styles.contactButton}>
+          <button onClick={handleContactClick} className={styles.contactButton}>
             Contactez Nos Experts
           </button>
         </div>
@@ -95,3 +98,4 @@ function ServicesSection({ repairFormRef }) {
 }
 
 export default ServicesSection;
+

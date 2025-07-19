@@ -10,7 +10,7 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([])
   const [cartCount, setCartCount] = useState(0)
 
-  // Load cart data when user changes (login/logout)
+  // // Load cart data when user changes (login/logout)
   useEffect(() => {
     if (user) {
       // If user is logged in, load their cart from localStorage
@@ -21,6 +21,7 @@ export const CartProvider = ({ children }) => {
       setCartItems([])
     }
   }, [user])
+
 
   // Save cart to localStorage and update cart count whenever it changes
   useEffect(() => {

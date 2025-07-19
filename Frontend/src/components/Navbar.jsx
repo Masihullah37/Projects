@@ -11,6 +11,8 @@ import { CartContext } from "../context/CartContext";
 import styles from "../styles/Navbar.module.css";
 import logo from "../assets/images/logo.png";
 import cartIcon from "../assets/images/cart.png";
+import { fetchApi } from "../config/api";
+import { toast } from "react-toastify"; // ✅ toast for messages
 
 function Navbar() {
   // États et contextes
@@ -21,13 +23,38 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false); // État du menu mobile
   const [searchQuery, setSearchQuery] = useState(""); // Requête de recherche
 
-  // Fonction de déconnexion
-  const handleLogout = () => {
-    setUser(null); // Réinitialise l'utilisateur
-    localStorage.removeItem("user"); // Supprime le stockage local
-    navigate("/login"); // Redirige vers la page de connexion
-    setIsMenuOpen(false); // Ferme le menu
-  };
+
+  const handleLogout = async () => {
+  try {
+    // Call the backend logout route
+    const response = await fetchApi('logout', {
+      method: "GET", // or "POST" if you prefer
+      credentials: "include", // Important for session cookies
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      setUser(null); // Clear user from context
+      localStorage.removeItem("user"); // Remove local storage copy
+      // Clean up cart data stored as cart_{userId}
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("cart_")) {
+          localStorage.removeItem(key);
+        }
+      });
+      toast.success("Déconnexion réussie"); // ✅ Success toast
+      navigate("/login"); // Redirect
+    } else {
+        toast.error(data.error || "Erreur lors de la déconnexion");
+    }
+  } catch (error) {
+    console.error("Erreur lors de la déconnexion", error);
+  }
+
+  setIsMenuOpen(false); // Close menu
+};
+
 
   // Effet pour fermer le menu en cliquant à l'extérieur
   useEffect(() => {

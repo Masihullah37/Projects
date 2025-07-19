@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { Lock } from "react-feather"
 import Footer from "./Footer"
 import styles from "../styles/Auth.module.css"
+import { fetchApi } from "../config/api"
 
 function ResetPassword() {
   const [formData, setFormData] = useState({
@@ -45,10 +46,13 @@ function ResetPassword() {
         console.log("Envoi de la requête de vérification avec:", { token, email })
 
         // Utiliser la bonne route et la bonne méthode (GET au lieu de POST)
-        const url = `http://localhost/IT_Repairs/Backend/routes.php?action=validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
-        console.log("URL de la requête:", url)
+        // const url = `http://localhost/IT_Repairs/Backend/routes.php?action=validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+        // console.log("URL de la requête:", url)
 
-        const response = await fetch(url, {
+        const action = `validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+        console.log("Action sent to fetchApi:", action);
+
+        const response = await fetchApi(action, {
           method: "GET", // Utiliser GET comme attendu par le backend
           headers: { "Content-Type": "application/json" },
         })
@@ -133,7 +137,7 @@ function ResetPassword() {
     try {
       console.log("Envoi de la requête de réinitialisation avec:", { token, email })
 
-      const response = await fetch(`http://localhost/IT_Repairs/Backend/routes.php?action=reset_password`, {
+      const response = await fetchApi('reset_password', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

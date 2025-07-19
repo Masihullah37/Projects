@@ -11,6 +11,7 @@ import RepairRequestForm from "./RepairRequestForm";
 import ServicesSection from "./ServicesSection";
 import ContactSection from "./ContactSection";
 import styles from "../styles/Home.module.css";
+import {fetchApi } from '../config/api';
 
 function Home() {
   // États pour gérer les produits, le chargement et les erreurs
@@ -35,7 +36,12 @@ function Home() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=get_products");
+      //  const response = await fetch(`${API_BASE_URL}/routes.php?action=get_products`); // GET is default method
+
+        const response = await fetchApi('get_products', {
+        method: "GET",
+        credentials: "include", // VERY IMPORTANT for cookies/session
+});
 
       if (!response.ok) {
         throw new Error(`Erreur HTTP ! Statut : ${response.status}`);
@@ -105,11 +111,12 @@ function Home() {
       });
 
       // Envoie la requête au backend pour enregistrer l'achat
-      await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=add_purchase", {
+      await fetchApi('add_purchase', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           user_id: user.id,
           product_id: product.id,

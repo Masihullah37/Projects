@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "react-feather";
 import Footer from "./Footer";
 import styles from "../styles/Auth.module.css"; // Import des styles CSS
+import { fetchApi } from "../config/api";
 
 function Signup() {
   // État pour stocker les données du formulaire
@@ -103,7 +104,7 @@ const handleSubmit = async (e) => {
     return;
   }
 
-  const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=register", {
+  const response = await fetchApi('register', {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
