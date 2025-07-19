@@ -12,6 +12,12 @@ class EmailService {
     public function __construct() {
         // Charger la configuration
         $config = $this->loadEmailConfig();
+         
+        // Validate crucial configuration
+        if (empty($config['gmail_email']) || empty($config['gmail_app_password'])) {
+            throw new RuntimeException('Email configuration is incomplete');
+        }
+
         $this->fromEmail = $config['gmail_email'];
         $this->fromName = $config['from_name'];
         // Initialiser PHPMailer
@@ -27,7 +33,7 @@ class EmailService {
         $this->mail->CharSet = 'UTF-8';
     }
     private function loadEmailConfig() {
-        $configFile = __DIR__ . '/../Config/mail/mail_config.php';
+        $configFile = __DIR__ . '/../Config/mail/email_config.php';
         
         if (!file_exists($configFile)) {
             throw new \Exception('Email configuration file not found');
