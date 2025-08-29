@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react/jsx-no-comment-textnodes */
 
 
 // Import des dépendances nécessaires
@@ -93,56 +95,71 @@ function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
-// Gestion de la soumission du formulaire
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setErrors({});
-  setSuccess("");
+  // Gestion de la soumission du formulaire
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    setSuccess("");
 
-  if (!validateForm()) {
-    setTimeout(() => setErrors({}), 2000);
-    return;
-  }
-
-  const response = await fetchApi('register', {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      nom: formData.nom,
-      prenom: formData.prenom,
-      email: formData.email,
-      password: formData.password,
-      telephone: formData.telephone.replace(/\s+/g, ""),
-    }),
-  });
-
-  const data = await response.json();
-
-  if (data.success) {
-    setSuccess("Inscription réussie ! Redirection...");
-    setTimeout(() => navigate("/login"), 2000);
-  } else {
-    switch(data.error) {
-      case "EMAIL_EXISTS":
-        setErrors({ email: "Cette adresse email est déjà utilisée" });
-        break;
-      case "PHONE_EXISTS":
-        setErrors({ telephone: "Ce numéro de téléphone est déjà utilisé" });
-        break;
-      case "REGISTRATION_FAILED":
-      default:
-        setErrors({ general: "Une erreur est survenue. Veuillez réessayer." });
+    if (!validateForm()) {
+      // Small delay to show client-side validation errors before clearing
+      setTimeout(() => setErrors({}), 2000); 
+      return;
     }
-  }
-};
 
-  
+    try {
+      // fetchApi now returns the full JSON response, even for logical errors (200 OK status)
+      const responseJson = await fetchApi('register', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: formData.nom,
+          prenom: formData.prenom,
+          email: formData.email,
+          password: formData.password,
+          telephone: formData.telephone.replace(/\s+/g, ""), // Remove spaces for backend
+        }),
+      });
+
+      console.log("Signup API raw response:", responseJson); 
+
+      // Check the nested 'success' flag from the backend's data
+      if (responseJson.success && responseJson.data && responseJson.data.success) {
+        setSuccess(responseJson.data.message || "Inscription réussie ! Redirection...");
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        // Handle logical errors from the backend (e.g., email/phone exists)
+        const backendError = responseJson.data.error; // Get the specific error code from backend
+        const backendMessage = responseJson.data.message || "Une erreur est survenue lors de l'inscription.";
+
+        const errorMap = {
+          "EMAIL_EXISTS": { email: backendMessage },
+          "PHONE_EXISTS": { telephone: backendMessage },
+          "MISSING_PHONE": { telephone: backendMessage },
+          "MISSING_PASSWORD": { password: backendMessage },
+          "REGISTRATION_FAILED": { general: backendMessage }
+        };
+        
+        // Apply specific field error if mapped, otherwise use general message
+        setErrors({ 
+          ...(errorMap[backendError] || {}), 
+          general: backendMessage 
+        });
+      }
+
+    } catch (err) {
+      // This catch block will only be hit for true HTTP errors (e.g., 400, 500)
+      console.error("Network or unexpected error during signup:", err); 
+      setErrors({ general: err.message || "Erreur réseau. Veuillez réessayer." });
+    }
+  };
 
   return (
     <div className={styles.pageContainer}>
       <div className={styles.contentWrap}>
         <div className={styles.authWrapper}>
           <div className={styles.authContainer}>
+            // eslint-disable-next-line react/no-unescaped-entities
             <h2 className={styles.authTitle}>S'inscrire</h2>
 
             {/* Affichage des messages d'erreur/succès */}

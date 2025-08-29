@@ -1,18 +1,48 @@
     <?php
 
+// Clear all output buffers
+while (ob_get_level() > 0) ob_end_clean();
 
-// ========= ACTIVER LE BUFFERING =========
+// ========= PREVENT ANY OUTPUT BEFORE HEADERS =========
 ob_start();
 
-// ========= DÉTECTION ENVIRONNEMENT (DEV/PROD) =========
+// ========= ERROR REPORTING (PRODUCTION SAFE) =========
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+
+
+// --- Composer Autoload ---
+require_once __DIR__ . '/vendor/autoload.php'; 
+require_once __DIR__ . '/Services/ResponseService.php';
+require_once __DIR__ . '/Services/SecurityService.php';
+
+// --- Load Dotenv ---
+try {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '.env.local');
+    $dotenv->load();
+} catch (Dotenv\Exception\InvalidPathException $e) {
+    // This is safe to catch as it means the .env file is missing.
+    // In production, you'd likely configure env vars via the web server.
+    // For local dev, a missing .env is a critical error.
+    error_log("ERROR: .env file not found or path is invalid: " . $e->getMessage());
+    ResponseService::sendError('Application configuration error', 500);
+} catch (Exception $e) {
+    error_log("ERROR: Dotenv loading failed: " . $e->getMessage());
+    ResponseService::sendError('Application configuration failed', 500);
+}
+
+// ========= ENVIRONMENT DETECTION =========
 $isDevEnvironment = in_array($_SERVER['HTTP_HOST'] ?? '', [
-    'localhost', 
+    'localhost',    
     'localhost:5173',
     '127.0.0.1',
     'localhost:8000'
 ]) || strpos($_SERVER['HTTP_HOST'] ?? '', '.local') !== false;
 
-// ========= CORS (mettre AVANT TOUT !) =========
+// ========= CORS HEADERS =========
 $allowedOrigins = [
     'http://localhost:5173',
     'https://test.icvinformatique.com',
@@ -21,429 +51,581 @@ $allowedOrigins = [
 
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigin = in_array($requestOrigin, $allowedOrigins) ? $requestOrigin : 
-                ($isDevEnvironment ? "http://localhost:5173" : "https://test.icvinformatique.com'");
+                ($isDevEnvironment ? "http://localhost:5173" : "https://test.icvinformatique.com");
 
+// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("Access-Control-Allow-Origin: $allowedOrigin");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token");
     header("Access-Control-Allow-Credentials: true");
-    header("Access-Control-Max-Age: 86400"); // Cache for 1 day
+    header("Access-Control-Max-Age: 86400");
     http_response_code(204);
     exit();
 }
 
+// Set CORS headers
 header("Access-Control-Allow-Origin: $allowedOrigin");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token");
 header("Access-Control-Allow-Credentials: true");
-header("Content-Type: application/json");
-header("X-Content-Type-Options: nosniff");
-header("X-Frame-Options: DENY");
-header("X-XSS-Protection: 1; mode=block");
+header("Content-Type: application/json;charset=UTF-8");
 
-// ========= SESSION SÉCURISÉE =========
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-         || $_SERVER['SERVER_PORT'] == 443
-         || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
+// ========= SESSION CONFIGURATION =========
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+          $_SERVER['SERVER_PORT'] == 443 || 
+          (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
 
 session_set_cookie_params([
-    'lifetime' => 86400, // 24 hours
+    'lifetime' => 86400,
     'path' => '/',
-    'domain' => $isDevEnvironment ? null : $_SERVER['HTTP_HOST'], // Dynamic for prod
+    'domain' => $isDevEnvironment ? null : $_SERVER['HTTP_HOST'],
     'secure' => $isHttps,
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
-
+ini_set('session.gc_maxlifetime', 86400);
 
 session_start();
+date_default_timezone_set('Europe/Paris');
 
-// ========= SECURITY SERVICE INITIALIZATION =========
-require_once 'Services/SecurityService.php';
-SecurityService::setSecurityHeaders();
+// --- NEW SESSION DEBUGGING LOGS ---
+error_log("DEBUG: routes.php - Request received. Session ID: " . session_id());
+error_log("DEBUG: routes.php - User ID in session: " . ($_SESSION['user_id'] ?? 'NULL/NOT SET'));
+error_log("DEBUG: routes.php - Request action: " . ($_GET['action'] ?? 'N/A') . ", Method: " . $_SERVER['REQUEST_METHOD']);
+// --- END NEW SESSION DEBUGGING LOGS ---
 
-// ========= GESTION DES ERREURS (DIFFÉRENTE EN DEV/PROD) =========
-ini_set('display_errors', $isDevEnvironment ? 1 : 0);
-ini_set('display_startup_errors', $isDevEnvironment ? 1 : 0);
-// error_reporting($isDevEnvironment ? E_ALL : E_ALL & ~E_DEPRECATED & ~E_STRICT);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-errors.log');
+// ========= AUTOLOAD SERVICES & CONTROLLERS =========
+// require_once __DIR__ . '/Services/ResponseService.php';
+// require_once __DIR__ . '/Services/SecurityService.php';
+require_once __DIR__ . '/Controllers/AuthController.php';
+require_once __DIR__ . '/Controllers/ProductController.php';
+require_once __DIR__ . '/Controllers/PurchaseController.php';
+require_once __DIR__ . '/Controllers/RepairController.php';
+require_once __DIR__ . '/Controllers/PaymentController.php';
+require_once __DIR__ . '/Config/Database.php';
 
-// ========= SECURITÉ SUPPLÉMENTAIRE =========
-if (!$isDevEnvironment) {
-    header("Strict-Transport-Security: max-age=63072000; includeSubDomains; preload");
-    header("Referrer-Policy: strict-origin-when-cross-origin");
-    header_remove('X-Powered-By');
-    ini_set('expose_php', 'off');
+// ========= DATABASE CONNECTION =========
+error_log("DEBUG: DB_HOST from _ENV: " . ($_ENV['DB_HOST'] ?? 'N/A'));
+error_log("DEBUG: DB_NAME from _ENV: " . ($_ENV['DB_NAME'] ?? 'N/A'));
+error_log("DEBUG: DB_USER from _ENV: " . ($_ENV['DB_USER'] ?? 'N/A'));
+error_log("DEBUG: DB_PASS from _ENV: " . ($_ENV['DB_PASS'] ?? 'N/A')); 
+
+try {
+    $database = new Database(
+        $_ENV['DB_HOST'],
+        $_ENV['DB_NAME'],
+        $_ENV['DB_USER'],
+        $_ENV['DB_PASS']
+    );
+    $conn = $database->getConnection();
+} catch (Exception $e) {
+    error_log("Database initialization failed: " . $e->getMessage());
+    ResponseService::sendError('Database connection failed', 500);
 }
 
-// ========= PROTECTION CONTRE LES FAILLES COURANTES =========
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', $isHttps ? '1' : '0');
-ini_set('session.use_strict_mode', '1');
-ini_set('session.cookie_samesite', 'strict');
-
-// Include required files
-require_once __DIR__ . '/vendor/autoload.php';
-require_once 'Config/Database.php';
-require_once 'Controllers/AuthController.php';
-require_once 'Controllers/PurchaseController.php';
-require_once 'Controllers/RepairController.php';
-require_once 'Controllers/ProductController.php';
-require_once 'Controllers/PaymentController.php';
-
-// Initialize the database
-$database = new Database();
-$conn = $database->getConnection();
-
-// Initialize controllers
+// ========= INITIALIZE CONTROLLERS =========
 $authController = new AuthController($conn);
+$productController = new ProductController($conn);
 $purchaseController = new PurchaseController($conn);
 $repairController = new RepairController($conn);
-$productController = new ProductController($conn);
 $paymentController = new PaymentController($conn);
 
-// Get the action from the request
+// ========= GET ACTION =========
 $action = $_GET['action'] ?? '';
 
-// Debugging: Log the action
-error_log("Action received: " . $action);
-
-
-function sendJsonResponse($data, $statusCode = 200) {
-    // Ensure we're working with clean output
-    if (ob_get_length()) {
-        ob_clean();
+// Generate CSRF token for state-changing actions
+// Note: 'add_repair' and 'update_repair_status' are now public, but still need CSRF if they are POST/PUT/DELETE
+if (in_array($action, ['register', 'add_purchase', 'add_payment', 'reset_password', 'forgot_password', 'add_repair', 'update_repair_status'])) {
+     if (empty($_SESSION['csrf_token'])) {
+         $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
     }
-    
-    // Let SecurityService handle the secure response
-    SecurityService::secureJsonResponse($data, $statusCode);
 }
 
 
-// Generate CSRF token for GET requests that need forms
-if (in_array($action, ['register', 'login', 'add_purchase', 'add_payment', 'reset_password', 'forgot_password'])) {
-    $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
-}
 
-// ========= GESTION DES ACTIONS =========
-switch ($action) {
-    case 'register':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($authController->register($data));
-            } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
-            }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+// ========= ROUTE HANDLING =========
+try {
+    switch ($action) {
+        // ========= AUTHENTICATION ROUTES =========
+        case 'register':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    error_log("Routes - Raw JSON data for register before sanitization: " . print_r($data, true));
 
-    case 'login':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                $response = $authController->login($data);
+                    SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
+                    
+                    // --- CRITICAL FIX START: Extract sensitive data before general sanitization ---
+                    $email = $data['email'] ?? '';
+                    $password = $data['password'] ?? '';
+                    $telephone = $data['telephone'] ?? '';
+                    $nom = $data['nom'] ?? '';
+                    $prenom = $data['prenom'] ?? '';
 
-                if (isset($response['error'])) {
-                    sendJsonResponse(["error" => $response['error']], 400);
+                    unset($data['email']);
+                    unset($data['password']);
+                    unset($data['telephone']);
+                    unset($data['nom']);
+                    unset($data['prenom']);
+
+                    $sanitizedData = SecurityService::sanitizeInput($data);
+
+                    $sanitizedData['email'] = $email;
+                    $sanitizedData['password'] = $password;
+                    $sanitizedData['telephone'] = $telephone;
+                    $sanitizedData['nom'] = $nom;
+                    $sanitizedData['prenom'] = $prenom;
+                    // --- CRITICAL FIX END ---
+
+                    error_log("Routes - Data for register AFTER selective sanitization: " . print_r($sanitizedData, true));
+
+                    ResponseService::sendSuccess($authController->register($sanitizedData));
+                } else {
+                    ResponseService::sendError("Invalid JSON data", 400);
                 }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+            
+        case 'login':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    // CSRF validation for login is often optional but can be added if desired.
+                    // SecurityService::validateCsrfToken($data['csrf_token'] ?? ''); 
+                    $data = SecurityService::sanitizeInput($data);
+                    $response = $authController->login($data);
 
-                if ($response && isset($response['user']['id'])) {
-                    $_SESSION['user_id'] = $response['user']['id'];
-                    $_SESSION['user_email'] = $response['user']['email'];
-                    $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
+                    if (isset($response['error'])) {
+                        ResponseService::sendError($response['error'], 400);
+                    }
 
-                    sendJsonResponse([
-                        "success" => true,
-                        "message" => "Login successful",
-                        "user" => $response['user'],
-                        "csrf_token" => $_SESSION['csrf_token']
+                    if ($response && isset($response['user']['id'])) {
+                        $_SESSION['user_id'] = $response['user']['id'];
+                        $_SESSION['user_email'] = $response['user']['email'];
+                        $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
+
+                        ResponseService::sendSuccess([
+                            "success" => true,
+                            "message" => "Login successful",
+                            "user" => $response['user'],
+                            "csrf_token" => $_SESSION['csrf_token']
+                        ]);
+                    } else {
+                        ResponseService::sendError("INVALID_CREDENTIALS", 401);
+                    }
+                } else {
+                    ResponseService::sendError("Invalid JSON", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        case 'logout':
+            session_destroy();
+            ResponseService::sendSuccess(["success" => true, "message" => "Logout successful"]);
+            break;
+
+        case 'check_session':
+            if (isset($_SESSION['user_id'])) {
+                ResponseService::sendSuccess([
+                    "loggedIn" => true,
+                    "user_id" => $_SESSION['user_id'],
+                    "email" => $_SESSION['user_email'] ?? '',
+                    "csrf_token" => $_SESSION['csrf_token'] ?? ''
+                ]);
+            } else {
+                ResponseService::sendSuccess(["loggedIn" => false]);
+            }
+            break;
+
+        // ========= PRODUCT ROUTES =========
+        case 'get_products':
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $result = $productController->getProducts();
+                
+                if ($result['success']) {
+                    ResponseService::sendSuccess([
+                        'products' => $result['data']['products'] ?? $result['data'] ?? [],
+                        'count' => $result['data']['count'] ?? count($result['data']['products'] ?? 0)
                     ]);
                 } else {
-                    sendJsonResponse(["error" => "INVALID_CREDENTIALS"], 401);
+                    ResponseService::sendError($result['message'] ?? 'Failed to fetch products', 500);
                 }
             } else {
-                sendJsonResponse(["error" => "Invalid JSON"], 400);
+                ResponseService::sendError('Method not allowed', 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Use POST method"], 405);
-        }
-        break;
-
-    case 'logout':
-        session_destroy();
-        sendJsonResponse(["success" => true, "message" => "Logout successful"]);
-        break;
-
-    case 'check_session':
-        if (isset($_SESSION['user_id'])) {
-            sendJsonResponse([
-                "loggedIn" => true,
-                "user_id" => $_SESSION['user_id'],
-                "email" => $_SESSION['user_email'] ?? '',
-                "csrf_token" => $_SESSION['csrf_token'] ?? ''
-            ]);
-        } else {
-            sendJsonResponse(["loggedIn" => false]);
-        }
-        break;
-
-    case 'add_purchase':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!isset($_SESSION['user_id'])) {
-                sendJsonResponse(["error" => "Not authenticated"], 401);
+            break;
+            
+        case 'get_product':
+            if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
+                $id = SecurityService::sanitizeInput($_GET['id']);
+                $product = $productController->getProductById($id);
+                ResponseService::sendSuccess($product ?: ['error' => 'Product not found']);
+            } else {
+                ResponseService::sendError("Product ID missing", 400);
             }
+            break;
 
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                if (isset($data['product_id'], $data['quantity'])) {
-                    $user_id = $_SESSION['user_id'];
-                    sendJsonResponse($purchaseController->addPurchase($user_id, $data['product_id'], $data['quantity']));
+        case 'add_product':
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) { // Added session check
+                error_log("ERROR: add_product - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Not authenticated", 401);
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: add_product - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($productController->addProduct($data));
                 } else {
-                    sendJsonResponse(["error" => "Invalid JSON data"], 400);
+                    error_log("ERROR: add_product - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
                 }
             } else {
-                sendJsonResponse(["error" => "Invalid JSON data"], 400);
+                ResponseService::sendError("Method not allowed", 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Invalid method. Use POST."], 405);
-        }
-        break;
+            break;
 
-    case 'get_purchases':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            if (!isset($_SESSION['user_id'])) {
-                sendJsonResponse(["error" => "Not authenticated"], 401);
+        // ========= PURCHASE ROUTES =========
+       
+         case 'add_purchase':
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: add_purchase - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Not authenticated", 401);
+                 exit();
             }
-            $user_id = $_SESSION['user_id'];
-            sendJsonResponse($purchaseController->getPurchases($user_id));
-        } else {
-            sendJsonResponse(["error" => "Invalid method. Use GET."], 405);
-        }
-        break;
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) {
+                        error_log("ERROR: add_purchase - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $sanitizedData = SecurityService::sanitizeInput($data); // Sanitize the whole data array
 
-    case 'add_repair':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($repairController->addRepair($data));
-            } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
-            }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
-
-    case 'get_repairs':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            sendJsonResponse($repairController->getRepairs());
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
-        }
-        break;
-
-    case 'update_repair_status':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($repairController->updateStatus($data));
-            } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
-            }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
-
-    case 'add_product':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($productController->addProduct($data));
-            } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
-            }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
-
-    case 'get_products':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            sendJsonResponse($productController->getProducts());
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
-        }
-        break;
-
-    case 'get_product':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
-            $id = SecurityService::sanitizeInput($_GET['id']);
-            sendJsonResponse($productController->getProductById($id));
-        } else {
-            sendJsonResponse(["error" => "ID de produit manquant ou invalide"], 400);
-        }
-        break;
-
-    case 'add_payment':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                $data['user_id'] = $_SESSION['user_id'];
-                sendJsonResponse($paymentController->addPayment($data));
-            } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
-            }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
-
-    case 'get_or_create_achat':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                if (!empty($data['cart_items']) && is_array($data['cart_items'])) {
-                    $user_id = $_SESSION['user_id'];
-                    sendJsonResponse($paymentController->getOrCreateAchat($user_id, $data['cart_items']));
+                    // --- CRITICAL FIX: Pass the entire sanitized $data array to PurchaseController ---
+                    // The PurchaseController::addPurchase method expects a single $data array,
+                    // from which it will extract product_id, quantity, and user_id (from session).
+                    $response = $purchaseController->addPurchase($sanitizedData); 
+                    ResponseService::sendSuccess($response); // PurchaseController already returns success/error array
                 } else {
-                    sendJsonResponse(["error" => "Panier vide ou invalide"], 400);
+                    error_log("ERROR: add_purchase - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
                 }
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                ResponseService::sendError("Method not allowed", 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
+        
 
-    case 'update_payment_status':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($paymentController->updatePaymentStatus($data));
+        // ========= REPAIR ROUTES =========
+        case 'add_repair':
+            // Removed session check as per user's clarification: this route is public
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: add_repair - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($repairController->addRepair($data));
+                } else {
+                    error_log("ERROR: add_repair - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                ResponseService::sendError("Method not allowed", 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
 
-    case 'get_payment':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['payment_id'])) {
-            $payment_id = SecurityService::sanitizeInput($_GET['payment_id']);
-            sendJsonResponse($paymentController->getPayment($payment_id));
-        } else {
-            sendJsonResponse(["error" => "ID de paiement manquant ou invalide"], 400);
-        }
-        break;
-
-    case 'get_purchase_history':
-        if (!isset($_SESSION['user_id'])) {
-            sendJsonResponse(["error" => "Not authenticated"], 401);
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $user_id = $_SESSION['user_id'];
-            sendJsonResponse($paymentController->getUserPurchaseHistory($user_id));
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
-        }
-        break;
-
-    case 'forgot_password':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($authController->forgotPassword($data));
+        case 'get_repairs':
+            // This route remains public as per previous discussion.
+            // If it needs to be user-specific (e.g., get repairs for logged-in user),
+            // add the session check and pass $_SESSION['user_id'].
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                ResponseService::sendSuccess($repairController->getRepairs());
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                ResponseService::sendError("Method not allowed", 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
 
-    case 'validate_reset_token':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $token = SecurityService::sanitizeInput($_GET['token'] ?? '');
-            $email = SecurityService::sanitizeInput($_GET['email'] ?? '');
-            sendJsonResponse($authController->validateResetToken($token, $email));
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez GET."], 405);
-        }
-        break;
-
-    case 'reset_password':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                $data = SecurityService::sanitizeInput($data);
-                sendJsonResponse($authController->resetPassword($data));
+        case 'update_repair_status':
+            // Removed session check as per user's clarification: this route is public
+            // (assuming public users can update status, e.g., via a link/token)
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: update_repair_status - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($repairController->updateStatus($data));
+                } else {
+                    error_log("ERROR: update_repair_status - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
             } else {
-                sendJsonResponse(["error" => "Données JSON invalides"], 400);
+                ResponseService::sendError("Method not allowed", 405);
             }
-        } else {
-            sendJsonResponse(["error" => "Méthode invalide. Utilisez POST."], 405);
-        }
-        break;
+            break;
 
+        // ========= PAYMENT ROUTES (from previous context, now integrated) =========
+        case 'get_or_create_achat':
+            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: get_or_create_achat - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                
+                if ($data) {
+                    // --- CRITICAL FIX: Validate CSRF token *after* ensuring data is present ---
+                    if (!isset($data['csrf_token'])) {
+                        error_log("ERROR: get_or_create_achat - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']); // Validate the token
+
+                    $data = SecurityService::sanitizeInput($data);
+                    
+                    if (!empty($data['cart_items']) && is_array($data['cart_items'])) {
+                        $user_id = $_SESSION['user_id']; // User ID is now guaranteed to be set
+                        ResponseService::sendSuccess($paymentController->getOrCreateAchat($user_id, $data['cart_items']));
+                    } else {
+                        error_log("ERROR: get_or_create_achat - Empty or invalid cart data.");
+                        ResponseService::sendError("Empty or invalid cart", 400);
+                    }
+                } else {
+                    error_log("ERROR: get_or_create_achat - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        case 'add_payment':
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: add_payment - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Not authenticated", 401);
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    error_log("Routes - Raw JSON data before sanitization: " . print_r($data, true));
+
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: add_payment - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    
+                    $cartItems = $data['cart_items'] ?? []; // Extract cart_items BEFORE sanitization
+
+                    unset($data['cart_items']); // Remove cart_items from data before general sanitization
+
+                    $sanitizedData = SecurityService::sanitizeInput($data);
+                    
+                    $sanitizedData['cart_items'] = $cartItems; // Re-add unsanitized cart_items
+
+                    error_log("Routes - Data AFTER selective sanitization: " . print_r($sanitizedData, true));
+
+                    $sanitizedData['user_id'] = $_SESSION['user_id'];
+                    ResponseService::sendSuccess($paymentController->addPayment($sanitizedData));
+                } else {
+                    error_log("ERROR: add_payment - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        case 'update_payment_status':
+            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: update_payment_status - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    // --- CRITICAL FIX: Validate CSRF token *after* ensuring data is present ---
+                    if (!isset($data['csrf_token'])) {
+                        error_log("ERROR: update_payment_status - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']); // Validate the token
+
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($paymentController->updatePaymentStatus($data));
+                } else {
+                    error_log("ERROR: update_payment_status - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        case 'get_payment':
+            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: get_payment - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Not authenticated", 401);
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['payment_id'])) {
+                $payment_id = SecurityService::sanitizeInput($_GET['payment_id']);
+                ResponseService::sendSuccess($paymentController->getPayment($payment_id));
+            } else {
+                error_log("ERROR: get_payment - Missing or invalid payment ID.");
+                ResponseService::sendError("Missing or invalid payment ID", 400);
+            }
+            break;
+
+   
+        
+         case 'get_purchase_history':
+            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("ERROR: get_purchase_history - Unauthorized access attempt (user not logged in).");
+                ResponseService::sendError("Not authenticated", 401);
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $user_id = $_SESSION['user_id'];
+                error_log("DEBUG: routes.php - Calling getUserPurchaseHistory for user: " . $user_id); // Log 1
+
+                $purchaseHistoryData = $paymentController->getUserPurchaseHistory($user_id);
+                
+                error_log("DEBUG: routes.php - Data received from controller: " . print_r($purchaseHistoryData, true)); // Log 2
+
+                // --- IMPORTANT: This is the critical section for JSON encoding ---
+                // Inside ResponseService::sendSuccess, json_encode is called.
+                // If an error happens *after* Log 2 but *before* ResponseService finishes,
+                // it's likely during the JSON encoding or output phase.
+                ResponseService::sendSuccess($purchaseHistoryData); 
+
+                // This log will only appear if ResponseService::sendSuccess completes without a fatal error
+                error_log("DEBUG: routes.php - ResponseService::sendSuccess completed for purchase history."); // Log 3
+
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        // ========= PASSWORD RECOVERY ROUTES =========
+        case 'forgot_password':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: forgot_password - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($authController->forgotPassword($data));
+                } else {
+                    error_log("ERROR: forgot_password - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+            
+        case 'validate_reset_token':
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $token = $_GET['token'] ?? '';
+                $email = $_GET['email'] ?? '';
+
+                error_log("DEBUG: routes.php - validate_reset_token received: Token=" . $token . ", Email=" . $email);
+
+                ResponseService::sendSuccess($authController->validateResetToken($token, $email));
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
+        case 'reset_password':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
+                        error_log("ERROR: reset_password - CSRF token missing in request body.");
+                        ResponseService::sendError("CSRF token missing.", 403);
+                    }
+                    SecurityService::validateCsrfToken($data['csrf_token']);
+                    $data = SecurityService::sanitizeInput($data);
+                    ResponseService::sendSuccess($authController->resetPassword($data));
+                } else {
+                    error_log("ERROR: reset_password - Invalid JSON data received.");
+                    ResponseService::sendError("Invalid JSON data", 400);
+                }
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+            
+        case 'db_test':
+            try {
+                $stmt = $conn->query("SELECT COUNT(*) FROM produits");
+                $count = $stmt->fetchColumn();
+                ResponseService::sendSuccess(['count' => $count]);
+            } catch (Exception $e) {
+                ResponseService::sendError($e->getMessage());
+            }
+            break;
+            
+        // ========= UTILITY ROUTES =========
         case 'get_csrf':
-    // Generate new CSRF token if doesn't exist
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
-    }
-    
-    sendJsonResponse([
-        'csrf_token' => $_SESSION['csrf_token'],
-        'timestamp' => time()
-    ]);
-    break;
+            if (empty($_SESSION['csrf_token'])) {
+                $_SESSION['csrf_token'] = SecurityService::generateCsrfToken();
+            }
+            ResponseService::sendSuccess([
+                'csrf_token' => $_SESSION['csrf_token'],
+                'timestamp' => time()
+            ]);
+            break;
+            
+        
+            
+        case 'test_products':
+            $testProducts = [
+                ['id' => 1, 'name' => 'Test Product 1', 'price' => 10.99],
+                ['id' => 2, 'name' => 'Test Product 2', 'price' => 20.99]
+            ];
+            ResponseService::sendSuccess([
+                'success' => true,
+                'products' => $testProducts,
+                'count' => count($testProducts)
+            ]);
+            break;
 
-    default:
-        sendJsonResponse(["error" => "Action non reconnue"], 404);
-        break;
+        default:
+            ResponseService::sendError("Action not recognized: " . $action, 404);
+            break;
+    }
+} catch (Exception $e) {
+    error_log("Unhandled exception in routes.php: " . $e->getMessage() . " on line " . $e->getLine());
+    ResponseService::sendError("An unexpected error occurred: " . $e->getMessage(), 500);
 }
+
+
 ?>
 

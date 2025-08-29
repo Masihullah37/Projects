@@ -1,6 +1,4 @@
-
-
-
+/* eslint-disable no-undef */
 
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
@@ -19,7 +17,7 @@ function ResetPassword() {
   const [isLoading, setIsLoading] = useState(true)
   const [tokenValid, setTokenValid] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [debugInfo, setDebugInfo] = useState(null) // État pour le débogage
+  const [debugInfo] = useState(null) // État pour le débogage
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -45,46 +43,25 @@ function ResetPassword() {
       try {
         console.log("Envoi de la requête de vérification avec:", { token, email })
 
-        // Utiliser la bonne route et la bonne méthode (GET au lieu de POST)
-        // const url = `http://localhost/IT_Repairs/Backend/routes.php?action=validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
-        // console.log("URL de la requête:", url)
-
-        const action = `validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
-        console.log("Action sent to fetchApi:", action);
-
-        const response = await fetchApi(action, {
+        // fetchApi now returns the full JSON response, no need for .ok check or .text()/json() call here.
+        const responseJson = await fetchApi(`validate_reset_token&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`, {
           method: "GET", // Utiliser GET comme attendu par le backend
           headers: { "Content-Type": "application/json" },
         })
 
-        console.log("Statut de la réponse:", response.status)
+        console.log("Réponse de validation du token (raw):", responseJson)
 
-        // Récupérer le texte brut de la réponse pour le débogage
-        const responseText = await response.text()
-        console.log("Réponse brute:", responseText)
-
-        // Essayer de parser la réponse en JSON
-        let data
-        try {
-          data = JSON.parse(responseText)
-          console.log("Données JSON:", data)
-        } catch (e) {
-          console.error("Erreur de parsing JSON:", e)
-          setErrors({ general: "Format de réponse invalide. Contactez l'administrateur." })
-          setIsLoading(false)
-          return
-        }
-
-        if (data.valid) {
+        // Check the nested 'success' and 'data.valid' flags from the backend's response
+        if (responseJson.success && responseJson.data && responseJson.data.valid) {
           console.log("Token validé avec succès")
           setTokenValid(true)
         } else {
-          console.log("Token invalide:", data.message || "Aucun message d'erreur")
-          setErrors({ general: "Ce lien a expiré ou est invalide. Veuillez demander un nouveau lien." })
+          console.log("Token invalide:", responseJson.data ? (responseJson.data.message || "Aucun message d'erreur spécifique") : "Réponse inattendue");
+          setErrors({ general: responseJson.data ? (responseJson.data.message || "Ce lien a expiré ou est invalide. Veuillez demander un nouveau lien.") : "Réponse inattendue du serveur." });
         }
       } catch (error) {
         console.error("Erreur lors de la vérification du token:", error)
-        setErrors({ general: "Erreur de connexion au serveur. Veuillez réessayer." })
+        setErrors({ general: error.message || "Erreur de connexion au serveur. Veuillez réessayer." })
       } finally {
         setIsLoading(false)
       }
@@ -137,7 +114,8 @@ function ResetPassword() {
     try {
       console.log("Envoi de la requête de réinitialisation avec:", { token, email })
 
-      const response = await fetchApi('reset_password', {
+      // fetchApi now returns the full JSON response, no need for .text()/json() call here.
+      const responseJson = await fetchApi('reset_password', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -147,33 +125,18 @@ function ResetPassword() {
         }),
       })
 
-      console.log("Statut de la réponse:", response.status)
+      console.log("Réponse de réinitialisation (raw):", responseJson)
 
-      // Récupérer le texte brut de la réponse pour le débogage
-      const responseText = await response.text()
-      console.log("Réponse brute:", responseText)
-
-      // Essayer de parser la réponse en JSON
-      let data
-      try {
-        data = JSON.parse(responseText)
-        console.log("Données JSON:", data)
-      } catch (e) {
-        console.error("Erreur de parsing JSON:", e)
-        setErrors({ general: "Format de réponse invalide. Contactez l'administrateur." })
-        setIsSubmitting(false)
-        return
-      }
-
-      if (data.success) {
+      // Check the nested 'success' flag from the backend's data
+      if (responseJson.success && responseJson.data && responseJson.data.success) {
         setSuccess("Votre mot de passe a été réinitialisé avec succès. Redirection vers la page de connexion...")
         setTimeout(() => navigate("/login"), 3000)
       } else {
-        setErrors({ general: data.message || "Une erreur est survenue. Veuillez réessayer." })
+        setErrors({ general: (responseJson.data && responseJson.data.message) || "Une erreur est survenue. Veuillez réessayer." })
       }
     } catch (error) {
       console.error("Erreur lors de la réinitialisation du mot de passe:", error)
-      setErrors({ general: "Erreur de connexion au serveur. Veuillez réessayer." })
+      setErrors({ general: error.message || "Erreur de connexion au serveur. Veuillez réessayer." })
     } finally {
       setIsSubmitting(false)
     }

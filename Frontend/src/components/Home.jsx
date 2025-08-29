@@ -1,9 +1,11 @@
+/* eslint-disable react/jsx-no-comment-textnodes */
+/* eslint-disable react/no-unescaped-entities */
 
 
-
-import { useState, useEffect, useContext, useCallback, useRef } from "react";
+import { useState, useEffect, useContext, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AuthContext } from "../App";
+// import { AuthContext } from "../App";
+import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
 import { Carousel } from "react-bootstrap";
 import Footer from "./Footer";
@@ -32,34 +34,38 @@ function Home() {
   // Référence pour le défilement vers le formulaire de réparation
   const repairFormRef = useRef(null); // Permet de faire défiler jusqu'au formulaire
   
-  // Fonction pour récupérer les produits depuis le backend
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      //  const response = await fetch(`${API_BASE_URL}/routes.php?action=get_products`); // GET is default method
+      setError(null); // Clear previous errors
 
-        const response = await fetchApi('get_products', {
+      // fetchApi now returns the full JSON response, including 'success' and 'data' properties.
+      const responseJson = await fetchApi('get_products', { 
         method: "GET",
-        credentials: "include", // VERY IMPORTANT for cookies/session
-});
+        credentials: "include",
+      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP ! Statut : ${response.status}`);
-      }
+      console.log("get_products API raw response:", responseJson);
 
-      const data = await response.json();
-
-      // Vérifie si la réponse est un tableau
-      if (Array.isArray(data)) {
-        setProducts(data); // Met à jour la liste des produits
+      // Check if the overall API call was successful and if the 'data' property exists
+      if (responseJson.success && responseJson.data) {
+        // Now, access the 'products' array from within the 'data' property
+        if (Array.isArray(responseJson.data.products)) { 
+          setProducts(responseJson.data.products); // Access the nested products array
+        } else {
+          // This case handles if 'data' exists but 'products' is not an array (unexpected backend structure)
+          throw new Error("Format de réponse invalide : un tableau de produits était attendu dans la propriété 'data'.");
+        }
       } else {
-        throw new Error("Format de réponse invalide : un tableau de produits était attendu");
+        // This handles cases where responseJson.success is false or responseJson.data is missing
+        throw new Error(responseJson.message || "Échec de la récupération des produits : " + (responseJson.data && responseJson.data.message));
       }
+
     } catch (err) {
       console.error("Erreur lors de la récupération des produits:", err);
-      setError("Une erreur est survenue lors du chargement des produits.");
+      setError(err.message || "Une erreur est survenue lors du chargement des produits.");
     } finally {
-      setLoading(false); // Arrête le chargement
+      setLoading(false);
     }
   }, []);
 
@@ -100,45 +106,66 @@ function Home() {
       return;
     }
 
-    try {
-      addToCart(product); // Ajoute le produit au panier via le contexte
+  try {
+        // Optimistically add to local cart state (consider removing this if backend is strict about stock)
+        // For a more robust solution, you might only update local cart *after* successful backend confirmation
+        // addToCart(product); // You might want to remove this line or defer it
 
-      // Affiche une notification
-      setNotification({
-        show: true,
-        message: "Produit ajouté au panier avec succès !",
-        count: cartCount + 1,
-      });
+        // Then sync with backend
+        const responseJson = await fetchApi('add_purchase', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            // credentials: 'include',
+            body: JSON.stringify({
+                product_id: product.id,
+                quantity: 1, // Always send 1 for adding a single unit to cart
+                // csrf_token: user.csrf_token
+            }),
+        });
 
-      // Envoie la requête au backend pour enregistrer l'achat
-      await fetchApi('add_purchase', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          user_id: user.id,
-          product_id: product.id,
-          quantity: 1,
-        }),
-      });
+        console.log("add_purchase API raw response:", responseJson);
+
+        if (responseJson.success && responseJson.data && responseJson.data.success) {
+            // Only add to local cart if backend confirms success
+            addToCart(product); // Add here
+            setNotification({
+                show: true,
+                message: responseJson.data.message || "Produit ajouté au panier !",
+                count: cartCount + 1, // Update count only on success
+            });
+        } else if (responseJson.data && responseJson.data.error === "INSUFFICIENT_STOCK") {
+            // Specific handling for insufficient stock
+            setNotification({
+                show: true,
+                message: responseJson.data.message, // Use the detailed message from backend
+                count: cartCount, // Do not increment cart count
+            });
+        } else {
+            // General error from backend response
+            throw new Error(responseJson.data.message || "Erreur lors de l'ajout au panier.");
+        }
+
     } catch (err) {
-      console.error("Erreur lors de l'ajout au panier:", err);
-      setNotification({
-        show: true,
-        message: "Erreur lors de l'ajout au panier.",
-        count: cartCount,
-      });
+        console.error("Erreur lors de l'ajout au panier:", err);
+        setNotification({
+            show: true,
+            message: err.message || "Erreur lors de l'ajout au panier.",
+            count: cartCount,
+        });
     }
-  };
+};
 
-  // Fonction pour obtenir le chemin de l'image d'un produit
   const getImagePath = useCallback((product) => {
-    if (product.image) {
-      return `/images/${product.image}`; // Utilise l'image depuis la base de données
+    if (!product?.image) return '/images/default-product.png';
+    
+    // For production
+    if (window.location.hostname !== 'localhost') {
+      return `https://test.icvinformatique.com/images/${product.image}`;
     }
-    return "/images/default-product.png"; // Image par défaut
+    // For development
+    return `/images/${product.image}`;
   }, []);
 
   // Fonction pour grouper les produits en fonction de la largeur de l'écran (responsive)
@@ -161,8 +188,14 @@ function Home() {
 
     return groups;
   }, [products]);
+  const productGroups = useMemo(() => groupProducts(), [groupProducts]);
+  // Use a useEffect hook to log the product groups only when they change
+    useEffect(() => {
+        console.log("Product Groups:", productGroups);
+    }, [productGroups]);
 
   // Gestion du redimensionnement de la fenêtre (responsive)
+  // eslint-disable-next-line no-unused-vars
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const resizeTimeoutRef = useRef(null);
 
@@ -229,7 +262,13 @@ function Home() {
   }
 
   // Groupement des produits pour le carrousel
-  const productGroups = groupProducts();
+  // const productGroups = groupProducts();
+  // const productGroups = useMemo(() => groupProducts(), [groupProducts]);
+  // // Use a useEffect hook to log the product groups only when they change
+  //   useEffect(() => {
+  //       console.log("Product Groups:", productGroups);
+  //   }, [productGroups]);
+  // console.log("Product Groups:", productGroups); 
 
   // Rendu principal de la page d'accueil
   return (
@@ -250,6 +289,7 @@ function Home() {
             <h2>Experts en réparation et services IT depuis 2010</h2>
             <p>
               Nous résolvons vos problèmes techniques avec précision et rapidité pour que vous puissiez vous concentrer
+              // eslint-disable-next-line react/no-unescaped-entities
               sur l'essentiel.
             </p>
             <div className={styles.heroButtons}>
@@ -285,12 +325,15 @@ function Home() {
                   {group.map((product) => (
                     <div key={product.id} className={styles.productCard}>
                       <div className={styles.productImageContainer}>
+                        {/* Added onClick handler to the image */}
                         <img
-                          src={getImagePath(product) || "/placeholder.svg"}
+                          src={getImagePath(product)}
                           alt={product.nom}
                           className={styles.productImage}
+                          onClick={() => handleAddToCart(product)} 
                           onError={(e) => {
-                            e.target.src = "/images/logo.png"; // Image de secours
+                            e.target.src = 'https://test.icvinformatique.com/images/default-product.png';
+                            e.target.style.objectFit = 'contain';
                           }}
                         />
                       </div>
@@ -341,3 +384,4 @@ function Home() {
 }
 
 export default Home;
+

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import styles from "../styles/ServicesSection.module.css";

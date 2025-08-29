@@ -4,11 +4,14 @@
 
 
 
+
+
 require_once __DIR__ . '/../vendor/autoload.php'; // MUST be first
 require_once __DIR__ . '/../Models/PaymentModel.php';
 require_once __DIR__ . '/../Models/ProductModel.php';
+require_once __DIR__ . '/../Models/PurchaseModel.php';
 
-use Dotenv\Dotenv;
+// use Dotenv\Dotenv;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Stripe\Exception\CardException;
@@ -17,86 +20,142 @@ use Stripe\Exception\CardException;
 class PaymentController {
     private $paymentModel;
     private $productModel;
+     private $purchaseModel; 
     private $stripeSecretKey;
     
-    public function __construct($conn) {
-        if (!isset($_ENV['STRIPE_SECRET_KEY'])) {
-            throw new RuntimeException('Stripe key missing in .env');
+
+public function __construct($conn) {
+   
+    
+       // --- CRITICAL FIX: Use $_ENV directly to retrieve Stripe Secret Key ---
+        // getenv() seems problematic in your Hostinger environment, but $_ENV is populated.
+        $this->stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'] ?? null; // Use $_ENV directly, add null coalescing for safety
+        // --- END CRITICAL FIX ---
+        
+        if (empty($this->stripeSecretKey)) {
+            // Log a more descriptive error if the key is missing
+            error_log('ERROR: Stripe secret key is missing or not loaded from environment variables.');
+            throw new RuntimeException('Stripe key is missing'); // Line 29
         }
 
-        $this->paymentModel = new PaymentModel($conn);
-        $this->productModel = new ProductModel($conn);
-        $this->stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'];
-        
-        Stripe::setApiKey($this->stripeSecretKey);
-    }
-
+    $this->paymentModel = new PaymentModel($conn);
+    $this->productModel = new ProductModel($conn);
+    $this->purchaseModel = new PurchaseModel($conn);
     
+    \Stripe\Stripe::setApiKey($this->stripeSecretKey);
+    
+}
+
+     
     public function addPayment($data) {
         try {
             if (empty($data['user_id']) || empty($data['amount'])) {
                 throw new \InvalidArgumentException('Missing required fields');
             }
 
+            // Determine the correct achat_id to use for this payment process.
+            // If frontend provided one (from getOrCreateAchat), use it.
+            // Otherwise, create a new one.
+            $currentAchatId = $data['achat_id'] ?? null;
+            if (empty($currentAchatId)) {
+                // When creating a new achat, set initial total_amount to 0.
+                // It will be recalculated after adding items.
+                $currentAchatId = $this->paymentModel->createAchat([
+                    'user_id' => $data['user_id'],
+                    'total_amount' => 0, // Set initial amount to 0
+                    'status' => 'pending'
+                ]);
+                if (!$currentAchatId) throw new \RuntimeException('Failed creating achat for payment.');
+                error_log("PaymentController - Created new achat_id during addPayment: " . $currentAchatId);
+            } else {
+                error_log("PaymentController - Using existing achat_id provided by frontend: " . $currentAchatId);
+            }
+
+            // Process and save Achat Items using $currentAchatId
+            if (!empty($data['cart_items']) && is_array($data['cart_items'])) {
+                error_log("PaymentController - Processing " . count($data['cart_items']) . " cart items for achat_id: " . $currentAchatId);
+                foreach ($data['cart_items'] as $item) {
+                    $productDetails = $this->productModel->getProductById($item['id']);
+                    if ($productDetails) {
+                        $added = $this->paymentModel->addAchatItem([
+                            'achat_id' => $currentAchatId,
+                            'product_id' => $item['id'],
+                            'quantity' => $item['quantity'], // This is the correct quantity from the frontend
+                            'price' => $productDetails['prix'] // This is the unit price from the product table
+                        ]);
+                        if (!$added) {
+                            error_log("PaymentController - Failed to add achat item for product ID: " . $item['id'] . " to achat ID: " . $currentAchatId);
+                        }
+                    } else {
+                        error_log("PaymentController - Product details not found for cart item ID: " . $item['id'] . ". Item skipped.");
+                    }
+                }
+            } else {
+                error_log("PaymentController - No cart items provided in data for achat_id: " . $currentAchatId);
+            }
+
+            // --- FIX START: Recalculate and update total_amount in 'achats' table ---
+            // After all items are added/updated, recalculate the total based on saved items
+            $this->purchaseModel->updateAchatTotalAmount($currentAchatId); // Use a new method for this
+            error_log("PaymentController - Recalculated and updated total_amount for achat: " . $currentAchatId);
+            // --- FIX END ---
+
+            // Now, use $currentAchatId for the Stripe PaymentIntent metadata
             $paymentIntent = \Stripe\PaymentIntent::create([
-                'amount' => round($data['amount'] * 100),
+                'amount' => round($data['amount'] * 100), // This 'amount' is still the frontend's total for Stripe
                 'currency' => 'eur',
                 'payment_method_types' => ['card'],
                 'metadata' => [
                     'user_id' => $data['user_id'],
-                    'achat_id' => $data['achat_id'] ?? null,
+                    'achat_id' => $currentAchatId,
                 ],
             ]);
 
-            // Handle achat creation if needed
-            if (empty($data['achat_id'])) {
-                $achatId = $this->paymentModel->createAchat([
-                    'user_id' => $data['user_id'],
-                    'total_amount' => $data['amount'],
-                    'status' => 'pending'
-                ]);
-                
-                if (!$achatId) throw new \RuntimeException('Failed creating achat');
-                $data['achat_id'] = $achatId;
-            }
-
-            // Save payment record
+            // Save payment record, linking it to $currentAchatId
             $paymentId = $this->paymentModel->createPayment([
                 'user_id' => $data['user_id'],
-                'achat_id' => $data['achat_id'],
+                'achat_id' => $currentAchatId,
                 'payment_method' => 'credit_card',
                 'payment_status' => 'pending',
-                'amount' => $data['amount'],
+                'amount' => $data['amount'], // This 'amount' is still the frontend's total for the payment record
                 'transaction_id' => $paymentIntent->id
             ]);
 
-            if (!$paymentId) throw new \RuntimeException('Failed saving payment');
+            if (!$paymentId) throw new \RuntimeException('Failed saving payment record.');
 
-            // Handle shipping address if provided
+            // Handle shipping address
             if (!empty($data['shipping_address'])) {
-                $this->paymentModel->addShippingAddress([
+                $shippingAddressData = [
                     'paiement_id' => $paymentId,
-                    'nom' => $data['shipping_address']['name'],
-                    'adresse_ligne1' => $data['shipping_address']['address_line1'],
-                    'ville' => $data['shipping_address']['city'],
-                    'code_postal' => $data['shipping_address']['postal_code'],
-                    'pays' => $data['shipping_address']['country']
-                ]);
+                    'nom' => $data['shipping_address']['name'] ?? null,
+                    'adresse_ligne1' => $data['shipping_address']['address_line1'] ?? null,
+                    'adresse_ligne2' => $data['shipping_address']['address_line2'] ?? null,
+                    'ville' => $data['shipping_address']['city'] ?? null,
+                    'departement' => $data['shipping_address']['state'] ?? null,
+                    'code_postal' => $data['shipping_address']['postal_code'] ?? null,
+                    'pays' => $data['shipping_address']['country'] ?? null,
+                    'telephone' => $data['shipping_address']['phone'] ?? null,
+                ];
+                $this->paymentModel->addShippingAddress($shippingAddressData);
             }
 
             return [
                 'success' => true,
                 'payment_id' => $paymentId,
-                'client_secret' => $paymentIntent->client_secret
+                'client_secret' => $paymentIntent->client_secret,
+                'achat_id' => $currentAchatId
             ];
-            
+
         } catch (\Stripe\Exception\CardException $e) {
+            error_log('Stripe Card Error: ' . $e->getMessage());
             return ['error' => 'Payment failed: ' . $e->getMessage()];
         } catch (\Exception $e) {
-            error_log('Payment error: ' . $e->getMessage());
+            error_log('General Payment Error: ' . $e->getMessage());
             return ['error' => 'Payment processing error'];
         }
     }
+
+    
     
     public function updatePaymentStatus($data) {
         try {
@@ -312,8 +371,7 @@ class PaymentController {
          return ['error' => 'Erreur lors de la récupération de l\'historique d\'achat: ' . $e->getMessage()];
      }
  }
-    // [Keep other methods like getPayment(), getOrCreateAchat(), getUserPurchaseHistory() unchanged]
-    // ...
+
 
     private function mapStripeStatusToDbStatus($stripeStatus) {
         switch ($stripeStatus) {
@@ -327,6 +385,7 @@ class PaymentController {
         }
     }
 }
+
 ?>
 
 

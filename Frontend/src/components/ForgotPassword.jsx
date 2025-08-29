@@ -40,17 +40,28 @@ function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-        // const response = await fetch("http://localhost/IT_Repairs/Backend/routes.php?action=forgot_password"
-         const response = await fetchApi('forgot_password', {
+        // fetchApi now returns the full JSON response, no need for .json() call here.
+        const responseJson = await fetchApi('forgot_password', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
         });
 
-        const data = await response.json();
+        console.log("Forgot Password API raw response:", responseJson);
 
-        if (data.error) {
-            switch(data.error) {
+        // Check the nested 'success' or 'error' flags from the backend's data
+        if (responseJson.success && responseJson.data && responseJson.data.success) {
+            setMessage({ 
+                type: "success", 
+                text: "Un email de réinitialisation a été envoyé à votre adresse" 
+            });
+            setEmail("");
+        } else {
+            // Handle logical errors from the backend (e.g., EMAIL_NOT_FOUND)
+            const backendError = responseJson.data ? responseJson.data.error : null;
+            const backendMessage = responseJson.data ? (responseJson.data.message || "Une erreur est survenue. Veuillez réessayer.") : "Réponse inattendue du serveur.";
+
+            switch(backendError) {
                 case "EMPTY_EMAIL":
                     setErrors({ email: "Veuillez remplir le champ email" });
                     break;
@@ -64,17 +75,12 @@ function ForgotPassword() {
                 case "EMAIL_SEND_ERROR":
                 case "TOKEN_CREATION_FAILED":
                 default:
-                    setMessage({ type: "error", text: "Une erreur est survenue. Veuillez réessayer." });
+                    setMessage({ type: "error", text: backendMessage });
             }
-        } else if (data.success) {
-            setMessage({ 
-                type: "success", 
-                text: "Un email de réinitialisation a été envoyé à votre adresse" 
-            });
-            setEmail("");
         }
     } catch (err) {
-        setMessage({ type: "error", text: "Erreur de connexion. Veuillez réessayer." });
+        console.error("Erreur lors de la demande de mot de passe oublié:", err);
+        setMessage({ type: "error", text: err.message || "Erreur de connexion. Veuillez réessayer." });
     } finally {
         setIsSubmitting(false);
     }

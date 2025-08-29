@@ -1,4 +1,5 @@
 <?php
+
 require_once(__DIR__ . '/../Models/RepairModel.php');
 
 
@@ -34,4 +35,5 @@ class RepairController {
         return $this->repairModel->updateStatus($data['repair_id'], $data['statut']);
     }
 }
+
 ?>

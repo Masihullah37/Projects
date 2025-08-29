@@ -1,70 +1,68 @@
+/* eslint-disable react/no-unescaped-entities */
 
 
-import { useContext, useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { AuthContext } from "../App"
-import styles from "../styles/PurchaseHistory.module.css"
-import { fetchApi } from "../config/api"
+import { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import styles from "../styles/PurchaseHistory.module.css";
+import { fetchApi } from "../config/api";
+import { toast } from "react-toastify"; // Import toast for messages
 
 function PurchaseHistory() {
-  const { user } = useContext(AuthContext)
-  const navigate = useNavigate()
-  const [purchases, setPurchases] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  // Get both 'user' and 'logout' from AuthContext
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [purchases, setPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!user) {
-      navigate("/login")
-      return
+      navigate("/login");
+      return;
     }
 
     // Fetch purchase history
     const fetchPurchaseHistory = async () => {
       try {
-        console.log("Fetching purchase history for user ID:", user.id)
+        console.log("Fetching purchase history for user ID:", user.id);
 
-        const response = await fetchApi('get_purchase_history', {
-         method: 'GET',
-         credentials: 'include' // 🔐 Include the session cookie
-    });
+        const data = await fetchApi('get_purchase_history', {
+          method: 'GET',
+          // credentials: 'include' // 🔐 Include the session cookie
+        });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        console.log("Parsed purchase history data:", data);
+
+        if (!data.success) {
+          throw new Error(data.message || "API call failed with an unknown error.");
         }
 
-        const responseText = await response.text()
-        console.log("Raw response:", responseText)
+        setPurchases(data.data.purchases || []);
 
-        let data
-        try {
-          data = JSON.parse(responseText)
-        } catch (e) {
-          console.error("Error parsing JSON:", e)
-          throw new Error("Invalid JSON response from server")
-        }
-
-        console.log("Parsed purchase history data:", data)
-
-        if (data.error) {
-          throw new Error(data.error)
-        }
-
-        setPurchases(data.purchases || [])
       } catch (error) {
-        console.error("Error fetching purchase history:", error)
-        setError(error.message)
-      } finally {
-        setLoading(false)
-      }
-    }
+        console.error("Error fetching purchase history:", error);
+        
+        // 🚨 IMPORTANT: If the user is unauthorized, log them out
+        if (error.message.includes("Unauthorized")) {
+          toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+          logout(); // Call the logout function from AuthContext
+          navigate("/login"); // Navigate to login page
+        } else {
+          setError(error.message);
+        }
 
-    fetchPurchaseHistory()
-  }, [user, navigate])
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPurchaseHistory();
+  }, [user, navigate, logout]); // Add 'logout' to the dependency array
 
   if (!user) {
-    return null // Don't render anything while redirecting
+    return null; // Don't render anything while redirecting
   }
 
   return (
@@ -123,20 +121,19 @@ function PurchaseHistory() {
                   </span>
                 </div>
               </div>
-
               <div className={styles.purchaseItems}>
-                {purchase.items &&
+                {purchase.items && purchase.items.length > 0 ? (
                   purchase.items.map((item, index) => (
-                    <div key={index} className={styles.purchaseItem}>
+                    <div key={item.id || index} className={styles.purchaseItem}>
                       <div className={styles.itemImageContainer}>
-                        {item.image ? (
+                        {item.product_image ? (
                           <img
-                            src={`/images/${item.image}`}
-                            alt={item.nom}
+                            src={`/images/${item.product_image}`}
+                            alt={item.product_name}
                             className={styles.itemImage}
                             onError={(e) => {
-                              e.target.onerror = null
-                              e.target.src = "/images/placeholder.png"
+                              e.target.onerror = null;
+                              e.target.src = "/images/placeholder.png";
                             }}
                           />
                         ) : (
@@ -144,18 +141,20 @@ function PurchaseHistory() {
                         )}
                       </div>
                       <div className={styles.itemDetails}>
-                        <span className={styles.itemName}>{item.nom}</span>
+                        <span className={styles.itemName}>{item.product_name}</span>
                         <span className={styles.itemQuantity}>Quantité: {item.quantity}</span>
                       </div>
-                      <div className={styles.itemPrice}>{(item.price * item.quantity).toFixed(2)} €</div>
+                      <div className={styles.itemPrice}>{(parseFloat(item.price) * item.quantity).toFixed(2)} €</div>
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <div className={styles.noItemsMessage}>Aucun article pour cette commande.</div>
+                )}
               </div>
-
               <div className={styles.purchaseFooter}>
                 <div className={styles.purchaseTotal}>
                   <span>Total:</span>
-                  <span className={styles.totalAmount}>{purchase.total_amount} €</span>
+                  <span className={styles.totalAmount}>{parseFloat(purchase.total_amount).toFixed(2)} €</span>
                 </div>
               </div>
             </div>
@@ -163,8 +162,7 @@ function PurchaseHistory() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default PurchaseHistory
-
+export default PurchaseHistory;
