@@ -16,9 +16,9 @@ Frontend/src/assets/react.svg
 Backend/vendor/
 Backend/*.log
 Backend/*.cache
-Backend/.env*
+Backend/.env.local
 Backend/Config/mail/email_config.php
-Backend/Database.php
+# Backend/Database.php
 
 # ====================
 # System / Editor Files
