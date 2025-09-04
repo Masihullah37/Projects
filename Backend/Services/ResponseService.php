@@ -18,8 +18,8 @@ class ResponseService {
     public static function sendError($message, $statusCode = 400, $errorData = []) {
         self::sendResponse([
             'success' => false,
-            'message' => $message, // Changed 'error' key to 'message' for consistency and clarity
-            'data' => $errorData // Pass the specific error details here
+            'message' => $message, 
+            'data' => $errorData 
         ], $statusCode);
     }
 

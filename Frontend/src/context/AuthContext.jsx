@@ -1,6 +1,5 @@
 
 import { createContext, useState, useEffect } from "react";
-// import { fetchApi } from "../config/api"; // fetchApi is NOT used here anymore
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();

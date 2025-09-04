@@ -79,7 +79,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
-    // TODO: Consider adding API call to clear server-side cart as well
+    
   };
 
   const getCartTotal = () => {

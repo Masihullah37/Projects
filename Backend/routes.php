@@ -77,16 +77,18 @@ $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
           (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
 
 session_set_cookie_params([
-    'lifetime' => 86400,
+    'lifetime' => 1800, // 30mins Session cookie expires when the browser closes
     'path' => '/',
     'domain' => $isDevEnvironment ? null : $_SERVER['HTTP_HOST'],
     'secure' => $isHttps,
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
-ini_set('session.gc_maxlifetime', 86400);
+ini_set('session.gc_maxlifetime', 1800); // Session data lasts until browser closes
 
 session_start();
+
+
 date_default_timezone_set('Europe/Paris');
 
 // --- NEW SESSION DEBUGGING LOGS ---
@@ -150,11 +152,19 @@ try {
         // ========= AUTHENTICATION ROUTES =========
         case 'register':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Check for CSRF token in HEADER first
+                  if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                      error_log("ERROR: register - CSRF token missing in header.");
+                      ResponseService::sendError("CSRF token missing.", 403);
+                  }
+        
+                    SecurityService::validateCsrfToken(); // Validate from header only
                 $data = json_decode(file_get_contents("php://input"), true);
                 if ($data) {
                     error_log("Routes - Raw JSON data for register before sanitization: " . print_r($data, true));
 
-                    SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
+                    // SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
+                    
                     
                     // --- CRITICAL FIX START: Extract sensitive data before general sanitization ---
                     $email = $data['email'] ?? '';
@@ -225,6 +235,17 @@ try {
             break;
 
         case 'logout':
+                // Clear all session variables
+             $_SESSION = [];
+    
+             // Delete the session cookie
+             if (ini_get("session.use_cookies")) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 3600,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
             session_destroy();
             ResponseService::sendSuccess(["success" => true, "message" => "Logout successful"]);
             break;
@@ -235,7 +256,7 @@ try {
                     "loggedIn" => true,
                     "user_id" => $_SESSION['user_id'],
                     "email" => $_SESSION['user_email'] ?? '',
-                    "csrf_token" => $_SESSION['csrf_token'] ?? ''
+                    // "csrf_token" => $_SESSION['csrf_token'] ?? ''
                 ]);
             } else {
                 ResponseService::sendSuccess(["loggedIn" => false]);
@@ -270,84 +291,90 @@ try {
             }
             break;
 
+
         case 'add_product':
-            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) { // Added session check
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
                 error_log("ERROR: add_product - Unauthorized access attempt (user not logged in).");
                 ResponseService::sendError("Not authenticated", 401);
-            }
+         }
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                if ($data) {
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: add_product - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
-                    $data = SecurityService::sanitizeInput($data);
-                    ResponseService::sendSuccess($productController->addProduct($data));
-                } else {
-                    error_log("ERROR: add_product - Invalid JSON data received.");
-                    ResponseService::sendError("Invalid JSON data", 400);
+             // Check for CSRF token in HEADER first
+               if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+               error_log("ERROR: add_product - CSRF token missing in header.");
+               ResponseService::sendError("CSRF token missing.", 403);
                 }
-            } else {
-                ResponseService::sendError("Method not allowed", 405);
-            }
-            break;
+        
+            SecurityService::validateCsrfToken(); // Validate from header only
+        
+             $data = json_decode(file_get_contents("php://input"), true);
+                if ($data) {
+                    $data = SecurityService::sanitizeInput($data);
+                     ResponseService::sendSuccess($productController->addProduct($data));
+                    } else {
+                          error_log("ERROR: add_product - Invalid JSON data received.");
+                             ResponseService::sendError("Invalid JSON data", 400);
+                             }
+                     } else {
+                    ResponseService::sendError("Method not allowed", 405);
+                 }
+                    break;
 
         // ========= PURCHASE ROUTES =========
-       
-         case 'add_purchase':
+
+        case 'add_purchase':
             if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
                 error_log("ERROR: add_purchase - Unauthorized access attempt (user not logged in).");
                 ResponseService::sendError("Not authenticated", 401);
-                 exit();
+                exit();
             }
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                if ($data) {
-                    if (!isset($data['csrf_token'])) {
-                        error_log("ERROR: add_purchase - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
-                    $sanitizedData = SecurityService::sanitizeInput($data); // Sanitize the whole data array
-
-                    // --- CRITICAL FIX: Pass the entire sanitized $data array to PurchaseController ---
-                    // The PurchaseController::addPurchase method expects a single $data array,
-                    // from which it will extract product_id, quantity, and user_id (from session).
-                    $response = $purchaseController->addPurchase($sanitizedData); 
-                    ResponseService::sendSuccess($response); // PurchaseController already returns success/error array
-                } else {
-                    error_log("ERROR: add_purchase - Invalid JSON data received.");
-                    ResponseService::sendError("Invalid JSON data", 400);
+             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+             // Check for CSRF token in HEADER first
+            if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                 error_log("ERROR: add_purchase - CSRF token missing in header.");
+                ResponseService::sendError("CSRF token missing.", 403);
                 }
-            } else {
-                ResponseService::sendError("Method not allowed", 405);
+        
+                 SecurityService::validateCsrfToken(); // Validate from header only
+        
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data) {
+            $sanitizedData = SecurityService::sanitizeInput($data);
+            $response = $purchaseController->addPurchase($sanitizedData); 
+            ResponseService::sendSuccess($response);
+             } else {
+            error_log("ERROR: add_purchase - Invalid JSON data received.");
+            ResponseService::sendError("Invalid JSON data", 400);
+                     }
+              } else {
+            ResponseService::sendError("Method not allowed", 405);
             }
-            break;
+             break;
         
 
-        // ========= REPAIR ROUTES =========
+        // // ========= REPAIR ROUTES =========
+       
         case 'add_repair':
-            // Removed session check as per user's clarification: this route is public
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                if ($data) {
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: add_repair - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
-                    $data = SecurityService::sanitizeInput($data);
-                    ResponseService::sendSuccess($repairController->addRepair($data));
-                } else {
-                    error_log("ERROR: add_repair - Invalid JSON data received.");
-                    ResponseService::sendError("Invalid JSON data", 400);
-                }
-            } else {
-                ResponseService::sendError("Method not allowed", 405);
+            // Check for CSRF token in HEADER first
+            if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            error_log("ERROR: add_repair - CSRF token missing in header.");
+            ResponseService::sendError("CSRF token missing.", 403);
             }
-            break;
+        
+        SecurityService::validateCsrfToken(); // Validate from header only
+        
+        $data = json_decode(file_get_contents("php://input"), true);
+        if ($data) {
+            $data = SecurityService::sanitizeInput($data);
+            ResponseService::sendSuccess($repairController->addRepair($data));
+        } else {
+            error_log("ERROR: add_repair - Invalid JSON data received.");
+            ResponseService::sendError("Invalid JSON data", 400);
+        }
+             } else {
+            ResponseService::sendError("Method not allowed", 405);
+           }
+        break;
 
         case 'get_repairs':
             // This route remains public as per previous discussion.
@@ -360,50 +387,51 @@ try {
             }
             break;
 
+        
         case 'update_repair_status':
-            // Removed session check as per user's clarification: this route is public
-            // (assuming public users can update status, e.g., via a link/token)
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                if ($data) {
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: update_repair_status - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
-                    $data = SecurityService::sanitizeInput($data);
-                    ResponseService::sendSuccess($repairController->updateStatus($data));
-                } else {
-                    error_log("ERROR: update_repair_status - Invalid JSON data received.");
-                    ResponseService::sendError("Invalid JSON data", 400);
-                }
+        // Check for CSRF token in HEADER first
+            if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            error_log("ERROR: update_repair_status - CSRF token missing in header.");
+            ResponseService::sendError("CSRF token missing.", 403);
+            }
+        
+            SecurityService::validateCsrfToken(); // Validate from header only
+        
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data) {
+            $data = SecurityService::sanitizeInput($data);
+            ResponseService::sendSuccess($repairController->updateStatus($data));
             } else {
-                ResponseService::sendError("Method not allowed", 405);
+            error_log("ERROR: update_repair_status - Invalid JSON data received.");
+            ResponseService::sendError("Invalid JSON data", 400);
             }
-            break;
+        } else {
+            ResponseService::sendError("Method not allowed", 405);
+            }
+        break;
 
-        // ========= PAYMENT ROUTES (from previous context, now integrated) =========
+        // // ========= PAYMENT ROUTES (from previous context, now integrated) =========
+        
         case 'get_or_create_achat':
-            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
-            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-                error_log("ERROR: get_or_create_achat - Unauthorized access attempt (user not logged in).");
-                ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);
-            }
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+        error_log("ERROR: get_or_create_achat - Unauthorized access attempt (user not logged in).");
+        ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);
+        }
 
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                
-                if ($data) {
-                    // --- CRITICAL FIX: Validate CSRF token *after* ensuring data is present ---
-                    if (!isset($data['csrf_token'])) {
-                        error_log("ERROR: get_or_create_achat - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']); // Validate the token
-
-                    $data = SecurityService::sanitizeInput($data);
-                    
-                    if (!empty($data['cart_items']) && is_array($data['cart_items'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Check for CSRF token in HEADER first
+        if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            error_log("ERROR: get_or_create_achat - CSRF token missing in header.");
+            ResponseService::sendError("CSRF token missing.", 403);
+        }
+        
+        SecurityService::validateCsrfToken(); // Validate from header only
+        
+        $data = json_decode(file_get_contents("php://input"), true);
+        if ($data) {
+            $data = SecurityService::sanitizeInput($data);
+             if (!empty($data['cart_items']) && is_array($data['cart_items'])) {
                         $user_id = $_SESSION['user_id']; // User ID is now guaranteed to be set
                         ResponseService::sendSuccess($paymentController->getOrCreateAchat($user_id, $data['cart_items']));
                     } else {
@@ -425,15 +453,17 @@ try {
                 ResponseService::sendError("Not authenticated", 401);
             }
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Check for CSRF token in HEADER first
+                  if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                      error_log("ERROR: add_payment - CSRF token missing in header.");
+                      ResponseService::sendError("CSRF token missing.", 403);
+           }
+        
+                SecurityService::validateCsrfToken(); // Validate from header only
                 $data = json_decode(file_get_contents("php://input"), true);
                 if ($data) {
                     error_log("Routes - Raw JSON data before sanitization: " . print_r($data, true));
 
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: add_payment - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
                     
                     $cartItems = $data['cart_items'] ?? []; // Extract cart_items BEFORE sanitization
 
@@ -463,14 +493,15 @@ try {
                 ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);
             }
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Check for CSRF token in HEADER first
+               if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                  error_log("ERROR: update_payment_status - CSRF token missing in header.");
+                  ResponseService::sendError("CSRF token missing.", 403);
+           }
+        
+        SecurityService::validateCsrfToken(); // Validate from header only
                 $data = json_decode(file_get_contents("php://input"), true);
                 if ($data) {
-                    // --- CRITICAL FIX: Validate CSRF token *after* ensuring data is present ---
-                    if (!isset($data['csrf_token'])) {
-                        error_log("ERROR: update_payment_status - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']); // Validate the token
 
                     $data = SecurityService::sanitizeInput($data);
                     ResponseService::sendSuccess($paymentController->updatePaymentStatus($data));
@@ -484,7 +515,7 @@ try {
             break;
 
         case 'get_payment':
-            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+
             if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
                 error_log("ERROR: get_payment - Unauthorized access attempt (user not logged in).");
                 ResponseService::sendError("Not authenticated", 401);
@@ -500,8 +531,8 @@ try {
 
    
         
-         case 'get_purchase_history':
-            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+        case 'get_purchase_history':
+            
             if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
                 error_log("ERROR: get_purchase_history - Unauthorized access attempt (user not logged in).");
                 ResponseService::sendError("Not authenticated", 401);
@@ -514,7 +545,7 @@ try {
                 
                 error_log("DEBUG: routes.php - Data received from controller: " . print_r($purchaseHistoryData, true)); // Log 2
 
-                // --- IMPORTANT: This is the critical section for JSON encoding ---
+        
                 // Inside ResponseService::sendSuccess, json_encode is called.
                 // If an error happens *after* Log 2 but *before* ResponseService finishes,
                 // it's likely during the JSON encoding or output phase.
@@ -531,13 +562,15 @@ try {
         // ========= PASSWORD RECOVERY ROUTES =========
         case 'forgot_password':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Check for CSRF token in HEADER first
+                 if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                    error_log("ERROR: forgot_password - CSRF token missing in header.");
+                    ResponseService::sendError("CSRF token missing.", 403);
+                }
+        
+                SecurityService::validateCsrfToken(); // Validate from header only
                 $data = json_decode(file_get_contents("php://input"), true);
                 if ($data) {
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: forgot_password - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
                     $data = SecurityService::sanitizeInput($data);
                     ResponseService::sendSuccess($authController->forgotPassword($data));
                 } else {
@@ -564,13 +597,15 @@ try {
 
         case 'reset_password':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    // Check for CSRF token in HEADER first
+               if (!isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                  error_log("ERROR: reset_password - CSRF token missing in header.");
+                  ResponseService::sendError("CSRF token missing.", 403);
+               }
+        
+                SecurityService::validateCsrfToken(); // Validate from header only
                 $data = json_decode(file_get_contents("php://input"), true);
                 if ($data) {
-                    if (!isset($data['csrf_token'])) { // Added CSRF token presence check
-                        error_log("ERROR: reset_password - CSRF token missing in request body.");
-                        ResponseService::sendError("CSRF token missing.", 403);
-                    }
-                    SecurityService::validateCsrfToken($data['csrf_token']);
                     $data = SecurityService::sanitizeInput($data);
                     ResponseService::sendSuccess($authController->resetPassword($data));
                 } else {
@@ -581,16 +616,7 @@ try {
                 ResponseService::sendError("Method not allowed", 405);
             }
             break;
-            
-        case 'db_test':
-            try {
-                $stmt = $conn->query("SELECT COUNT(*) FROM produits");
-                $count = $stmt->fetchColumn();
-                ResponseService::sendSuccess(['count' => $count]);
-            } catch (Exception $e) {
-                ResponseService::sendError($e->getMessage());
-            }
-            break;
+
             
         // ========= UTILITY ROUTES =========
         case 'get_csrf':
@@ -621,10 +647,10 @@ try {
             ResponseService::sendError("Action not recognized: " . $action, 404);
             break;
     }
-} catch (Exception $e) {
-    error_log("Unhandled exception in routes.php: " . $e->getMessage() . " on line " . $e->getLine());
-    ResponseService::sendError("An unexpected error occurred: " . $e->getMessage(), 500);
-}
+        } catch (Exception $e) {
+            error_log("Unhandled exception in routes.php: " . $e->getMessage() . " on line " . $e->getLine());
+            ResponseService::sendError("An unexpected error occurred: " . $e->getMessage(), 500);
+        }
 
 
 ?>
