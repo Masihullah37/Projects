@@ -5,7 +5,7 @@
 # ====================
 Frontend/node_modules/
 Frontend/build/
-Frontend/dist/
+dist/
 Frontend/.env*
 Frontend/public/vite.svg
 Frontend/src/assets/react.svg
