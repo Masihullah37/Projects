@@ -189,11 +189,7 @@ private function getErrorMessage($errorCode) {
      * @param string $email
      * @return array
      */
-    // public function validateResetToken($token, $email) {
-    //     $valid = $this->userModel->validateResetToken($token, $email);
-    //     return ["valid" => $valid ? true : false];
-    // }
-    // ...
+    
     public function validateResetToken($token, $email) {
         error_log("DEBUG: AuthController - validateResetToken called with Token=" . $token . ", Email=" . $email); // Add this log
         $valid = $this->userModel->validateResetToken($token, $email);

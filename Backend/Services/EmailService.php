@@ -12,13 +12,13 @@ class EmailService {
 
     public function __construct() {
        
-        // // --- END CRITICAL FIX ---
-        // --- CRITICAL FIX: Use $_ENV directly for credentials ---
+    
+        
         // These values are loaded by Dotenv in routes.php and made available globally in $_ENV.
         $this->fromEmail = $_ENV['GMAIL_EMAIL'] ?? null; // Use $_ENV directly, add null coalescing for safety
         $this->fromName = $_ENV['FROM_NAME'] ?? null;   // Use $_ENV directly
         $appPassword = $_ENV['GMAIL_APP_PASSWORD'] ?? null; // Use $_ENV directly
-        // --- END CRITICAL FIX ---
+       
 
         // Basic validation for critical email credentials
         if (empty($this->fromEmail) || empty($appPassword)) {

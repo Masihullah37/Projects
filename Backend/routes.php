@@ -1,4 +1,4 @@
-    <?php
+<?php
 
 // Clear all output buffers
 while (ob_get_level() > 0) ob_end_clean();
@@ -163,10 +163,7 @@ try {
                 if ($data) {
                     error_log("Routes - Raw JSON data for register before sanitization: " . print_r($data, true));
 
-                    // SecurityService::validateCsrfToken($data['csrf_token'] ?? '');
-                    
-                    
-                    // --- CRITICAL FIX START: Extract sensitive data before general sanitization ---
+        
                     $email = $data['email'] ?? '';
                     $password = $data['password'] ?? '';
                     $telephone = $data['telephone'] ?? '';
@@ -186,7 +183,7 @@ try {
                     $sanitizedData['telephone'] = $telephone;
                     $sanitizedData['nom'] = $nom;
                     $sanitizedData['prenom'] = $prenom;
-                    // --- CRITICAL FIX END ---
+                    
 
                     error_log("Routes - Data for register AFTER selective sanitization: " . print_r($sanitizedData, true));
 
@@ -411,7 +408,7 @@ try {
             }
         break;
 
-        // // ========= PAYMENT ROUTES (from previous context, now integrated) =========
+        // // ========= PAYMENT ROUTES  =========
         
         case 'get_or_create_achat':
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -487,7 +484,7 @@ try {
             break;
 
         case 'update_payment_status':
-            // --- CRITICAL FIX: Ensure session check is robust and happens first ---
+           
             if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
                 error_log("ERROR: update_payment_status - Unauthorized access attempt (user not logged in).");
                 ResponseService::sendError("Unauthorized: User not logged in. Please log in to proceed.", 401);

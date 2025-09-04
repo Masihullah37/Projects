@@ -1,12 +1,11 @@
 <?php
 
-
 class SecurityService {
 
     /**
-     * Generates and stores a new CSRF token in the session.
+     * Génère et stocke un nouveau jeton CSRF dans la session.
      *
-     * @return string The generated CSRF token.
+     * @return string Le jeton CSRF généré.
      */
     public static function generateCsrfToken() {
         if (session_status() === PHP_SESSION_NONE) {
@@ -20,39 +19,40 @@ class SecurityService {
         return $token;
     }
 
-   /**
- * Validates a CSRF token from the request header against the one in the session.
- * Now uses only the X-CSRF-Token header for validation (no body parameter).
- *
- * @return bool True if the tokens match, false otherwise.
- */
-public static function validateCsrfToken() {
-     // Étape 1 : Vérifier si une session est déjà active.
-    // Si aucune session n'est démarrée, on démarre une nouvelle session
-    // ou on récupère celle liée au cookie PHPSESSID envoyé par le navigateur.
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    /**
+     * Valide un jeton CSRF reçu dans l’en-tête de la requête
+     * en le comparant avec celui stocké en session.
+     * Utilise uniquement l’en-tête "X-CSRF-Token" pour la validation.
+     *
+     * @return bool Vrai si les jetons correspondent, faux sinon.
+     */
+    public static function validateCsrfToken() {
+        // Étape 1 : Vérifier si une session est déjà active.
+        // Si aucune session n’est démarrée, on en démarre une
+        // ou on récupère celle associée au cookie PHPSESSID envoyé par le navigateur.
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
-    //Récupérer le jeton CSRF uniquement depuis l’en-tête HTTP "X-CSRF-Token".
-    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    
-    // Check if either the received token or the session token is empty.
-    if (empty($token) || !isset($_SESSION['csrf_token'])) {
-        return false;   
+        // Récupérer le jeton CSRF uniquement depuis l’en-tête HTTP "X-CSRF-Token".
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        
+        // Vérifie si le jeton reçu ou celui stocké en session est vide.
+        if (empty($token) || !isset($_SESSION['csrf_token'])) {
+            return false;   
+        }
+        
+        // Comparer le jeton reçu ($token) avec celui stocké en session ($_SESSION['csrf_token']).
+        // La fonction hash_equals() effectue une comparaison en temps constant,
+        // ce qui empêche toute fuite d’information basée sur le temps de réponse.
+        return hash_equals($_SESSION['csrf_token'], $token);
     }
-    
-    //On compare le jeton reçu ($token) avec celui stocké en session ($_SESSION['csrf_token']).
-    // Avec hash_equals(), la comparaison est faite en temps constant (toujours la même durée),
-    //ce qui empêche toute fuite d’information basée sur la vitesse de réponse.
-    return hash_equals($_SESSION['csrf_token'], $token);
-}
 
     /**
-     * Sanitizes input data to prevent Cross-Site Scripting (XSS).
+     * Nettoie les données d’entrée pour prévenir les failles XSS.
      *
-     * @param mixed $data The input data to be sanitized.
-     * @return mixed The sanitized data.
+     * @param mixed $data Les données à nettoyer.
+     * @return mixed Les données nettoyées.
      */
     public static function sanitizeInput($data) {
         if (is_array($data)) {
@@ -62,7 +62,8 @@ public static function validateCsrfToken() {
     }
 
     /**
-     * Sets common security headers to protect against various attacks.
+     * Définit des en-têtes de sécurité communs pour se protéger
+     * contre différentes attaques.
      */
     public static function setSecurityHeaders() {
         header("X-Content-Type-Options: nosniff");
