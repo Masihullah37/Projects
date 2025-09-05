@@ -151,7 +151,7 @@ function Navbar() {
                   </>
                 )}
               </ul>
-              <div className={styles.searchBar}>
+              {/* <div className={styles.searchBar}>
                 <input
                   type="text"
                   placeholder="Rechercher..."
@@ -161,7 +161,7 @@ function Navbar() {
                 <button className={styles.searchButton}>
                   <i className="fas fa-search"></i>
                 </button>
-              </div>
+              </div> */}
             </div>
             <Link to="/cart" className={styles.cartIcon}>
               <img src={cartIcon || "/vite.svg"} alt="Cart" style={{ height: "24px", width: "24px" }} />

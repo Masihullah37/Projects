@@ -30,11 +30,17 @@ function Signup() {
   const navigate = useNavigate();
 
   // Fonction pour valider le mot de passe
+  // const validatePassword = (password) => {
+  //   // Regex: 8 caractères, majuscule, minuscule, chiffre et caractère spécial
+  //   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  //   return passwordRegex.test(password);
+  // };
+
   const validatePassword = (password) => {
-    // Regex: 8 caractères, majuscule, minuscule, chiffre et caractère spécial
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+  return passwordRegex.test(password);
   };
+
 
   // Fonction pour valider le numéro de téléphone (format français)
   const validatePhoneNumber = (phone) => {
