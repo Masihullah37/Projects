@@ -91,6 +91,25 @@ class RepairModel {
         ]);
         return $stmt->rowCount() > 0;
     }
+
+    // Get repair by ID
+    public function getRepairById($repair_id) {
+        $sql = "SELECT * FROM reparations WHERE id = :repair_id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':repair_id' => $repair_id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Update repair notes
+    public function updateNotes($repair_id, $notes) {
+        $sql = "UPDATE reparations SET notes = :notes WHERE id = :repair_id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':notes' => $notes,
+            ':repair_id' => $repair_id
+        ]);
+        return $stmt->rowCount() > 0;
+    }
 }
 ?>
 

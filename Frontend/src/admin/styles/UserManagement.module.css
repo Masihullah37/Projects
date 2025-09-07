@@ -1,0 +1,330 @@
+.userManagement {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.pageHeader h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.createButton:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.createAdminForm {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.createAdminForm h3 {
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.formRow input {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.formRow input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.submitButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #2563eb;
+}
+
+.cancelButton {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #4b5563;
+}
+
+.searchContainer {
+  margin-bottom: 2rem;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  gap: 0.75rem;
+  max-width: 400px;
+}
+
+.searchBox svg {
+  color: #6b7280;
+}
+
+.searchBox input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.usersTable {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.5fr 1fr 1.5fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.tableBody {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.5fr 1fr 1.5fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.tableRow:hover {
+  background-color: #f9fafb;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.userName {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.userEmail {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.userPhone {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.userStatus {
+  display: flex;
+  align-items: center;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusBadge.active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.statusBadge.blocked {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.userDate {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.userActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.actionButton:hover {
+  transform: translateY(-1px);
+}
+
+.blockButton {
+  background-color: #fbbf24;
+  color: white;
+}
+
+.blockButton:hover {
+  background-color: #f59e0b;
+}
+
+.unblockButton {
+  background-color: #10b981;
+  color: white;
+}
+
+.unblockButton:hover {
+  background-color: #059669;
+}
+
+.deleteButton {
+  background-color: #ef4444;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #dc2626;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.emptyState svg {
+  margin-bottom: 1rem;
+}
+
+.emptyState h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .tableRow {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .userActions {
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+  
+  .pageHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}

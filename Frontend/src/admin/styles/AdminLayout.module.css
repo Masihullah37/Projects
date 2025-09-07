@@ -1,0 +1,34 @@
+.adminLayout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease;
+}
+
+.pageContent {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* When sidebar is collapsed */
+.adminLayout:has(.sidebar.collapsed) .mainContent {
+  margin-left: 80px;
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 0;
+  }
+  
+  .pageContent {
+    padding: 1rem;
+  }
+}

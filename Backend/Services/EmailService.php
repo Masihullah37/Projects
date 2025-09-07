@@ -113,6 +113,23 @@ class EmailService {
     }
 }
 
+    public function sendRepairNotification(string $toEmail, string $subject, string $body): bool {
+        try {
+            $this->mail->clearAddresses();
+            $this->mail->setFrom($this->fromEmail, $this->fromName);
+            $this->mail->addAddress($toEmail);
+            $this->mail->isHTML(true);
+            $this->mail->Subject = $subject;
+            $this->mail->Body = $body;
+
+            $this->mail->send();
+            return true;
+        } catch (Exception $e) {
+            error_log('Error sending repair notification: ' . $e->getMessage());
+            return false;
+        }
+    }
+
 
 
 

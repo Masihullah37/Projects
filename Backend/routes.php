@@ -640,6 +640,18 @@ try {
             ]);
             break;
 
+        case 'get_all_products':
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $products = $productController->getAllProducts();
+                ResponseService::sendSuccess([
+                    'success' => true,
+                    'products' => $products
+                ]);
+            } else {
+                ResponseService::sendError("Method not allowed", 405);
+            }
+            break;
+
         default:
             ResponseService::sendError("Action not recognized: " . $action, 404);
             break;
